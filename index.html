@@ -163,7 +163,7 @@ table.res td:last-child{text-align:right;font-variant-numeric:tabular-nums}
     <h2>소리</h2>
     <label class="card" style="display:flex;align-items:center;gap:12px"><input type="checkbox" id="spatial" style="width:22px;height:22px;accent-color:#c99a4f"><span><b>공간 음향(서라운드)</b><div class="meta">이어폰 전용. 지휘대에 선 위치에서 각 단원 소리가 앞·좌우·거리감 있게 들린다. 스피커로 들을 때는 끄는 게 낫다.</div></span></label>
     <label class="card" style="display:flex;align-items:center;gap:12px;margin-top:10px"><input type="checkbox" id="tickOn" style="width:22px;height:22px;accent-color:#c99a4f"><span><b>지휘 박 소리</b><div class="meta">박을 저을 때마다 '딱' 소리가 나서 내가 친 박이 들린다. 1박은 조금 높은 소리.</div></span></label>
-    <div class="ver">Maestro v0.2.2</div>
+    <div class="ver">Maestro v0.2.3</div>
   </div>
   <nav id="tabbar"><button data-tab="songs" class="on"><i>🎼</i>곡</button><button data-tab="set"><i>⚙️</i>설정</button></nav>
 </section>
@@ -527,7 +527,7 @@ function playNote(seat,t,m,dur,v){
    ========================================================= */
 const $=id=>document.getElementById(id);
 const G={running:false};
-const LOOK=.12;                               // 스케줄 선행 시간(초)
+const LOOK=.05;                               // 스케줄 선행 시간(초)
 const pick=a=>a[Math.floor(Math.random()*a.length)];
 const clamp=(x,a,b)=>Math.min(b,Math.max(a,x));
 const DYN_NAMES=[['pp',.12],['p',.3],['mp',.45],['mf',.6],['f',.8],['ff',1]];
@@ -749,17 +749,17 @@ function onIctus(amp,at,x,y){
   if(G.lastIctus!=null){
     const gap=n-G.lastIctusBeat,dt=at-G.lastIctus;
     if(gap>=1&&gap<=2&&dt>.2){
-      // 최근 3박 간격의 중앙값 → 한 박 삐끗해도 템포가 널뛰지 않는다
-      G.ivs=(G.ivs||[]).concat(dt/gap).slice(-3);
-      const med=[...G.ivs].sort((a,b)=>a-b)[Math.floor(G.ivs.length/2)];
-      let inst=clamp(1/med,tr*.5,tr*1.6);
-      inst=clamp(inst,G.baseRate*.8,G.baseRate*1.2);
-      G.baseRate=.4*G.baseRate+.6*inst;
+      // 방금 친 박 간격을 바로 반영 (빨라질 때도 느려질 때도 같은 속도로 따라감)
+      let inst=clamp(gap/dt,tr*.4,tr*1.8);
+      inst=clamp(inst,G.baseRate*.7,G.baseRate*1.3);
+      G.baseRate=.35*G.baseRate+.65*inst;
     }
   }
-  G.baseRate=clamp(G.baseRate,tr*.5,tr*1.6);
-  // 5) 위상 보정: 0.05박 이상 어긋나면 다음 1박 동안 최대 ±25%로 지휘 박에 맞춤
-  G.corr=Math.abs(err)>.05?clamp(err*.6,-.25,.25):0;G.corrUntil=G.fB+1;
+  G.baseRate=clamp(G.baseRate,tr*.4,tr*1.8);
+  // 5) 위상 보정
+  // 오케스트라는 탭 전에는 다음 박에 들어가지 않으므로(아래 loop), 탭이 일찍 왔을 때만 따라잡는다
+  const errF=n-G.fB;
+  G.corr=errF>.06?clamp(errF*.8,0,.4):0;G.corrUntil=G.fB+1;
   G.rate=G.baseRate*(1+G.corr);
   if(amp!=null)G.userLevel=.4*G.userLevel+.6*amp;          // 탭 높이 = 셈여림(위 ff ~ 아래 pp)
   const bpb=G.Q/G.qpb,k=((n%bpb)+bpb)%bpb,ok=Math.abs(err)<.2;  // ok: 오케스트라 박과 잘 맞았는지(표시용)
@@ -777,8 +777,9 @@ function loop(){
   if(G.corrUntil!=null&&G.fB>=G.corrUntil){G.corr=0;G.corrUntil=null;}
   // 지휘를 기다림: 마지막 지휘 박 다음 박에서 0.35박 넘게 앞서 나가지 않는다.
   // 지휘가 늦어지면 그 앞에서 점점 느려져 멈추고, 다음 박이 들어오면 거기서 다시 따라간다.
-  // 첫 탭 전에는 준비 박(딸깍)만 치고 1박 직전에서 멈춰 지휘자의 첫 박(탭)을 기다린다.
-  const allowF=G.lastIctusBeat!=null?G.lastIctusBeat+1.35+LOOK*G.baseRate:-.01,hold=clamp((allowF-G.fB)/.25,.02,1);
+  // 탭이 박이다: 오케스트라는 다음 탭이 올 때까지 다음 박에 들어가지 않는다(직전에서 기다림).
+  // 첫 탭 전에는 준비 박만 치고 1박 직전에서 기다린다.
+  const allowF=G.lastIctusBeat!=null?G.lastIctusBeat+.97:-.01,hold=clamp((allowF-G.fB)/.06,0,1);
   G.rate=G.baseRate*(1+G.corr)*hold;
   if(H>G.fT){
     const nB=G.fB+(H-G.fT)*G.rate,tAt=b=>G.fT+(b-G.fB)/G.rate;
