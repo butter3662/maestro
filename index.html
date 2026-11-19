@@ -163,7 +163,7 @@ table.res td:last-child{text-align:right;font-variant-numeric:tabular-nums}
     <h2>소리</h2>
     <label class="card" style="display:flex;align-items:center;gap:12px"><input type="checkbox" id="spatial" style="width:22px;height:22px;accent-color:#c99a4f"><span><b>공간 음향(서라운드)</b><div class="meta">이어폰 전용. 지휘대에 선 위치에서 각 단원 소리가 앞·좌우·거리감 있게 들린다. 스피커로 들을 때는 끄는 게 낫다.</div></span></label>
     <label class="card" style="display:flex;align-items:center;gap:12px;margin-top:10px"><input type="checkbox" id="tickOn" style="width:22px;height:22px;accent-color:#c99a4f"><span><b>지휘 박 소리</b><div class="meta">박을 저을 때마다 '딱' 소리가 나서 내가 친 박이 들린다. 1박은 조금 높은 소리.</div></span></label>
-    <div class="ver">Maestro v0.1.9</div>
+    <div class="ver">Maestro v0.2.0</div>
   </div>
   <nav id="tabbar"><button data-tab="songs" class="on"><i>🎼</i>곡</button><button data-tab="set"><i>⚙️</i>설정</button></nav>
 </section>
@@ -597,11 +597,11 @@ function startGame(songId,diff){
     baseRate:song.bars[0].tp/60,rate:song.bars[0].tp/60,
     pos:-song.countIn-.3,fB:-song.countIn-.3,fT:ctx.currentTime+.05,hist:[[ctx.currentTime+.05,-song.countIn-.3]],corr:0,corrUntil:null,nextClick:-song.countIn,
     errs:[],nextErrAt:ctx.currentTime+song.countIn*60/song.bars[0].tp+4,spawned:0,missed:0,caught:[],nf:0,
-    scoreC:0,bonus:0,evaluated:-1,beatHits:0,ictus:new Map(),patOk:0,patBad:0,b1:null,lastPt:null,judge:null,sk:null,userLevel:.45,lastIctus:null,lastIctusBeat:null,
+    scoreC:0,bonus:0,evaluated:-1,beatHits:0,ictus:new Map(),ivs:[],patOk:0,patBad:0,b1:null,lastPt:null,judge:null,sk:null,userLevel:.45,lastIctus:null,lastIctusBeat:null,
     padPtr:null,trail:[],ripples:[],running:true
   });
   $('hudTitle').textContent=`${song.title} · ${G.cfg.name}`;
-  $('padHint').textContent=G.Q/G.qpb===4?'4/4 지휘법 · 1↓ 2← 3→ 4↗ (도형대로 저어야 점수)':'3/4 지휘법 · 1↓ 2→ 3↗ (도형대로 저어야 점수)';
+  $('padHint').textContent=G.Q/G.qpb===4?'4/4 지휘법 · 1↓ 2← 3→ 4↑ — 꼭짓점마다 딱 끊어 주기':'3/4 지휘법 · 1↓ 2→ 3↑ — 꼭짓점마다 딱 끊어 주기';
   buildStage();resizePad();
   requestAnimationFrame(loop);
 }
@@ -750,9 +750,12 @@ function onIctus(amp,at,x,y){
   if(G.lastIctus!=null){
     const gap=n-G.lastIctusBeat,dt=at-G.lastIctus;
     if(gap>=1&&gap<=2&&dt>.2){
-      let inst=clamp(gap/dt,tr*.5,tr*1.6);
-      inst=clamp(inst,G.baseRate*.75,G.baseRate*1.25);
-      G.baseRate=.45*G.baseRate+.55*inst;                    // 지휘자 템포를 빠르게 따라감
+      // 최근 3박 간격의 중앙값 → 한 박 삐끗해도 템포가 널뛰지 않는다
+      G.ivs=(G.ivs||[]).concat(dt/gap).slice(-3);
+      const med=[...G.ivs].sort((a,b)=>a-b)[Math.floor(G.ivs.length/2)];
+      let inst=clamp(1/med,tr*.5,tr*1.6);
+      inst=clamp(inst,G.baseRate*.8,G.baseRate*1.2);
+      G.baseRate=.4*G.baseRate+.6*inst;
     }
   }
   G.baseRate=clamp(G.baseRate,tr*.5,tr*1.6);
@@ -808,19 +811,16 @@ const evAudio=ms=>ctx.currentTime-Math.max(0,performance.now()-ms)/1000;
 function padXY(e){const r=pad.getBoundingClientRect();return [e.clientX-r.left,e.clientY-r.top];}
 const padS=()=>Math.min(G.padW,G.padH);
 /* 지휘법 판정 (오른손, 지휘자 시점)
-   4/4: 1↓(아래) 2←(안쪽) 3→(바깥쪽) 4↗(위로 돌아옴)   3/4: 1↓ 2→ 3↗
-   직전 박 지점(p)과 그 마디 1박 지점(b1)을 기준으로 상대 위치를 본다. d = 지휘대 짧은 변의 7%. */
+   4/4: 1↓ 2← 3→ 4↑   3/4: 1↓ 2→ 3↑
+   직전 박 지점(p)에서 얼마나, 어느 쪽으로 움직였는지 본다. d = 지휘대 짧은 변의 7%. */
 function judgePattern(k,x,y,bpb){
-  const p=G.lastPt,b1=G.b1||p,d=.07*padS();
+  const p=G.lastPt,d=.07*padS();
   if(!p)return k===0;
-  if(k===0)return y-p.y>d;
-  if(bpb===4){
-    if(k===1)return x<p.x-d&&x<b1.x-d*.5;
-    if(k===2)return x>p.x+1.5*d;
-    return x<p.x-.5*d&&y<p.y+.5*d;
-  }
-  if(k===1)return x>p.x+d&&x>b1.x+d*.5;
-  return x<p.x-.5*d&&y<p.y+.5*d;
+  const dx=x-p.x,dy=y-p.y;
+  if(k===0)return dy>d;                       // 1: 아래로
+  if(k===bpb-1)return -dy>d;                  // 마지막 박: 위로
+  if(bpb===4)return k===1?-dx>d:dx>1.5*d;     // 4/4 2: 왼쪽, 3: 오른쪽(가로질러)
+  return dx>d;                                // 3/4 2: 오른쪽
 }
 /* 박점(ictus) 감지: 속도가 붙은 획이 멈칫하며(속도 최소점) 방향이 60° 넘게 꺾이는 순간.
    - 리바운드 꼭대기에서 잘못 잡히지 않게: 직전 박 뒤 0.55박 이내는 무시, 거의 수직으로 올라오다 꺾인 점도 무시 */
@@ -842,11 +842,11 @@ function moveSample(x,y,ms){
   const win=sk.hist.filter(h=>ms-h.ms<=100);
   const old=win[0],mn=win.reduce((a,h)=>h.sp<a.sp?h:a,win[0]);
   // 박점에서 멈칫한 경우 — 단, 거의 수직으로 올라와 멈춘 점(예비박 꼭대기)은 박이 아니다
-  if(sp<Math.max(.02,.15*sk.peak)){if(!(sk.msp&&sk.mvy<-.8*sk.msp))fireIctus(mn);return;}
+  if(sp<Math.max(.02,.15*sk.peak)){fireIctus(mn);return;}                // 박점에서 멈칫한 경우
   if(!old||old.sp<.25*sk.peak||sp<.25*sk.peak)return;
   const cos=(old.vx*G.vx+old.vy*G.vy)/(old.sp*sp);
-  const steepUp=old.vy<-.85*old.sp;                                        // 거의 수직 상승 → 리바운드
-  if(cos<.5&&mn.sp<.55*sk.peak&&!steepUp)fireIctus(mn);
+  // 크게 꺾이면(60°↑) 살짝만 느려져도, 덜 꺾이면(35°↑) 확실히 멈칫해야 박으로 본다
+  if((cos<.5&&mn.sp<.55*sk.peak)||(cos<.82&&mn.sp<.35*sk.peak))fireIctus(mn);
 }
 pad.addEventListener('pointerdown',e=>{
   if(!G.running||G.padPtr!=null)return;e.preventDefault();
@@ -903,17 +903,25 @@ function render(now){
   $('padHint').style.opacity=G.lastIctus==null?1:.45;
 }
 // 지휘법 도형 (반투명 안내): 정규화 좌표 [x,y], 각 구간은 2차 곡선 제어점
+// 지휘 도형 (반투명 안내): 박마다 꺾이는 지점. 마지막 박은 위(꼭대기), 거기서 1박으로 내려친다.
+// pts = 박 지점(정규화 좌표), ctrl[i] = pts[i]→pts[i+1] 곡선 제어점
 const PATTERN={
-  4:{pts:[[.5,.88],[.18,.62],[.84,.6],[.56,.38]],top:[.5,.08],ctrl:[[.32,.42],[.5,.74],[.78,.36]],back:[.46,.2]},
-  3:{pts:[[.5,.88],[.82,.62],[.56,.38]],top:[.5,.08],ctrl:[[.6,.5],[.78,.34]],back:[.46,.2]}
+  4:{pts:[[.5,.86],[.17,.56],[.83,.56],[.5,.12]],ctrl:[[.27,.84],[.5,.7],[.74,.24]]},
+  3:{pts:[[.5,.86],[.83,.56],[.5,.12]],ctrl:[[.74,.84],[.73,.24]]}
 };
 function drawPattern(W,H,t){
   const bpb=G.Q/G.qpb,P=PATTERN[bpb];if(!P)return;
-  const S=Math.min(W,H)*.9,ox=(W-S)/2,oy=(H-S)/2+6,X=v=>ox+v[0]*S,Y=v=>oy+v[1]*S;
-  pctx.save();pctx.lineWidth=Math.max(3,S*.012);pctx.lineCap='round';pctx.strokeStyle='rgba(231,194,125,.2)';pctx.setLineDash([10,9]);
-  pctx.beginPath();pctx.moveTo(X(P.top),Y(P.top));pctx.lineTo(X(P.pts[0]),Y(P.pts[0]));
-  for(let i=1;i<P.pts.length;i++)pctx.quadraticCurveTo(X(P.ctrl[i-1]),Y(P.ctrl[i-1]),X(P.pts[i]),Y(P.pts[i]));
-  pctx.quadraticCurveTo(X(P.back),Y(P.back),X(P.top),Y(P.top));pctx.stroke();pctx.setLineDash([]);
+  const S=Math.min(W,H)*.9,ox=(W-S)/2,oy=(H-S)/2+6,X=v=>ox+v[0]*S,Y=v=>oy+v[1]*S,L=P.pts.length;
+  pctx.save();pctx.lineWidth=Math.max(3,S*.012);pctx.lineCap='round';pctx.strokeStyle='rgba(231,194,125,.22)';pctx.setLineDash([10,9]);
+  pctx.beginPath();pctx.moveTo(X(P.pts[L-1]),Y(P.pts[L-1]));pctx.lineTo(X(P.pts[0]),Y(P.pts[0]));
+  for(let i=1;i<L;i++)pctx.quadraticCurveTo(X(P.ctrl[i-1]),Y(P.ctrl[i-1]),X(P.pts[i]),Y(P.pts[i]));
+  pctx.stroke();pctx.setLineDash([]);
+  // 진행 방향 화살표(각 구간 중간)
+  pctx.fillStyle='rgba(231,194,125,.3)';
+  const arrow=(x0,y0,x1,y1)=>{const a=Math.atan2(y1-y0,x1-x0),z=Math.max(7,S*.025);pctx.save();pctx.translate(x1,y1);pctx.rotate(a);pctx.beginPath();pctx.moveTo(0,0);pctx.lineTo(-z,-z*.6);pctx.lineTo(-z,z*.6);pctx.fill();pctx.restore();};
+  {const a=P.pts[L-1],b=P.pts[0];arrow(X(a),Y(a),(X(a)+X(b))/2,(Y(a)+Y(b))/2);}
+  for(let i=1;i<L;i++){const a=P.pts[i-1],c=P.ctrl[i-1],b=P.pts[i],q=u=>[(1-u)*(1-u)*a[0]+2*(1-u)*u*c[0]+u*u*b[0],(1-u)*(1-u)*a[1]+2*(1-u)*u*c[1]+u*u*b[1]];
+    const m0=q(.47),m1=q(.53);arrow(X(m0),Y(m0),X(m1),Y(m1));}
   // 다음에 칠 박 강조, 방금 친 박 판정 표시
   const next=((Math.floor(G.pos+.5)+1)%bpb+bpb)%bpb,j=G.judge&&t-G.judge.t<450?G.judge:null;
   P.pts.forEach((v,i)=>{
