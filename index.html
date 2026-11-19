@@ -163,7 +163,7 @@ table.res td:last-child{text-align:right;font-variant-numeric:tabular-nums}
     <h2>소리</h2>
     <label class="card" style="display:flex;align-items:center;gap:12px"><input type="checkbox" id="spatial" style="width:22px;height:22px;accent-color:#c99a4f"><span><b>공간 음향(서라운드)</b><div class="meta">이어폰 전용. 지휘대에 선 위치에서 각 단원 소리가 앞·좌우·거리감 있게 들린다. 스피커로 들을 때는 끄는 게 낫다.</div></span></label>
     <label class="card" style="display:flex;align-items:center;gap:12px;margin-top:10px"><input type="checkbox" id="tickOn" style="width:22px;height:22px;accent-color:#c99a4f"><span><b>지휘 박 소리</b><div class="meta">박을 저을 때마다 '딱' 소리가 나서 내가 친 박이 들린다. 1박은 조금 높은 소리.</div></span></label>
-    <div class="ver">Maestro v0.2.0</div>
+    <div class="ver">Maestro v0.2.1</div>
   </div>
   <nav id="tabbar"><button data-tab="songs" class="on"><i>🎼</i>곡</button><button data-tab="set"><i>⚙️</i>설정</button></nav>
 </section>
@@ -601,7 +601,7 @@ function startGame(songId,diff){
     padPtr:null,trail:[],ripples:[],running:true
   });
   $('hudTitle').textContent=`${song.title} · ${G.cfg.name}`;
-  $('padHint').textContent=G.Q/G.qpb===4?'4/4 지휘법 · 1↓ 2← 3→ 4↑ — 꼭짓점마다 딱 끊어 주기':'3/4 지휘법 · 1↓ 2→ 3↑ — 꼭짓점마다 딱 끊어 주기';
+  $('padHint').textContent=`${G.Q/G.qpb}/4박자 · 박마다 탭 · 위쪽을 누를수록 크게, 아래쪽일수록 작게`;
   buildStage();resizePad();
   requestAnimationFrame(loop);
 }
@@ -711,7 +711,6 @@ function popup(si,txt,cls){
 }
 function scoreBeat(k){
   if(!G.ictus.has(k))return;
-  if(!G.ictus.get(k)){G.patBad++;return;}              // 박은 쳤지만 지휘 도형이 틀리면 0점
   G.patOk++;
   const bi=barIndexAt(k),tr=G.song.bars[bi].tp/60,tl=G.barDyn[bi];
   const ta=Math.max(0,1-Math.abs(G.baseRate/tr-1)/.25);
@@ -762,9 +761,9 @@ function onIctus(amp,at,x,y){
   // 5) 위상 보정: 0.05박 이상 어긋나면 다음 1박 동안 최대 ±25%로 지휘 박에 맞춤
   G.corr=Math.abs(err)>.05?clamp(err*.6,-.25,.25):0;G.corrUntil=G.fB+1;
   G.rate=G.baseRate*(1+G.corr);
-  if(amp!=null){const lv=clamp((amp/padS()-.12)/.45,0,1);G.userLevel=.45*G.userLevel+.55*lv;}
-  const bpb=G.Q/G.qpb,k=((n%bpb)+bpb)%bpb,ok=judgePattern(k,x,y,bpb);
-  G.ictus.set(n,ok);
+  if(amp!=null)G.userLevel=.4*G.userLevel+.6*amp;          // 탭 높이 = 셈여림(위 ff ~ 아래 pp)
+  const bpb=G.Q/G.qpb,k=((n%bpb)+bpb)%bpb,ok=Math.abs(err)<.2;  // ok: 오케스트라 박과 잘 맞았는지(표시용)
+  G.ictus.set(n,true);
   G.judge={k,ok,t:performance.now()};
   if(tickOn())tick(k===0);
   if(k===0)G.b1={x,y};G.lastPt={x,y};
@@ -848,21 +847,13 @@ function moveSample(x,y,ms){
   // 크게 꺾이면(60°↑) 살짝만 느려져도, 덜 꺾이면(35°↑) 확실히 멈칫해야 박으로 본다
   if((cos<.5&&mn.sp<.55*sk.peak)||(cos<.82&&mn.sp<.35*sk.peak))fireIctus(mn);
 }
+// 탭 = 박. 탭한 높이로 셈여림을 정한다(위 = 크게, 아래 = 작게). 여러 손가락 동시 사용 가능.
 pad.addEventListener('pointerdown',e=>{
-  if(!G.running||G.padPtr!=null)return;e.preventDefault();
-  G.padPtr=e.pointerId;try{pad.setPointerCapture(e.pointerId);}catch(_){}
+  if(!G.running)return;e.preventDefault();
   const [x,y]=padXY(e),ms=e.timeStamp||performance.now();
-  Object.assign(G,{px:x,py:y,pt:ms,vx:0,vy:0});resetStroke(x,y,ms-1000);
-  G.trail.push({x,y,t:performance.now()});
+  const lv=clamp(1-(y-G.padH*.08)/(G.padH*.84),0,1);
+  onIctus(lv,evAudio(ms),x,y);
 });
-pad.addEventListener('pointermove',e=>{
-  if(e.pointerId!==G.padPtr)return;
-  const list=e.getCoalescedEvents?e.getCoalescedEvents():[];
-  (list.length?list:[e]).forEach(ev=>{const [x,y]=padXY(ev);moveSample(x,y,ev.timeStamp||performance.now());});
-  G.trail.push({x:G.px,y:G.py,t:performance.now()});
-});
-const endPtr=e=>{if(e.pointerId===G.padPtr)G.padPtr=null;};
-pad.addEventListener('pointerup',endPtr);pad.addEventListener('pointercancel',endPtr);
 
 /* =========================================================
    8. 화면 그리기
@@ -894,15 +885,39 @@ function render(now){
   // 지휘 판
   const W=G.padW,H=G.padH,t=performance.now();
   pctx.clearRect(0,0,W,H);
-  drawPattern(W,H,t);
+  drawTapPad(W,H,t);
   G.trail=G.trail.filter(p=>t-p.t<650);
   for(let i=1;i<G.trail.length;i++){const a=G.trail[i-1],b=G.trail[i],al=1-(t-b.t)/650;
     pctx.strokeStyle=`rgba(231,194,125,${al})`;pctx.lineWidth=2+al*5;pctx.lineCap='round';pctx.beginPath();pctx.moveTo(a.x,a.y);pctx.lineTo(b.x,b.y);pctx.stroke();}
   G.ripples=G.ripples.filter(r=>t-r.t<500);
-  G.ripples.forEach(r=>{const k=(t-r.t)/500;pctx.strokeStyle=r.ok?`rgba(127,217,154,${1-k})`:`rgba(255,122,107,${1-k})`;pctx.lineWidth=3;pctx.beginPath();pctx.arc(r.x,r.y,10+k*40,0,Math.PI*2);pctx.stroke();});
+  G.ripples.forEach(r=>{const k=(t-r.t)/500;pctx.strokeStyle=r.ok?`rgba(127,217,154,${1-k})`:`rgba(255,190,90,${1-k})`;pctx.lineWidth=3;pctx.beginPath();pctx.arc(r.x,r.y,10+k*40,0,Math.PI*2);pctx.stroke();});
   $('padHint').style.opacity=G.lastIctus==null?1:.45;
 }
-// 지휘법 도형 (반투명 안내): 정규화 좌표 [x,y], 각 구간은 2차 곡선 제어점
+// 탭 지휘대: 왼쪽 셈여림 눈금(목표·현재), 가운데 박 표시
+function drawTapPad(W,H,t){
+  const bpb=G.Q/G.qpb,top=H*.08,span=H*.84,yOf=v=>top+(1-v)*span;
+  pctx.save();
+  // 셈여림 눈금
+  pctx.font='italic 700 13px "Times New Roman",serif';pctx.textAlign='left';pctx.textBaseline='middle';
+  DYN_NAMES.forEach(([nm,v])=>{const y=yOf(v);pctx.fillStyle='rgba(231,194,125,.35)';pctx.fillText(nm,12,y);
+    pctx.strokeStyle='rgba(231,194,125,.08)';pctx.lineWidth=1;pctx.beginPath();pctx.moveTo(40,y);pctx.lineTo(W-12,y);pctx.stroke();});
+  const bi=barIndexAt(Math.max(0,G.pos)),tg=G.barDyn[bi];
+  pctx.strokeStyle='rgba(231,194,125,.5)';pctx.lineWidth=2;pctx.setLineDash([6,6]);pctx.beginPath();pctx.moveTo(40,yOf(tg));pctx.lineTo(W-12,yOf(tg));pctx.stroke();pctx.setLineDash([]);
+  pctx.fillStyle='rgba(231,194,125,.6)';pctx.font='600 11px -apple-system,sans-serif';pctx.textAlign='right';pctx.fillText('목표 '+dynName(tg),W-14,yOf(tg)-10);
+  pctx.fillStyle='rgba(255,240,205,.85)';pctx.beginPath();pctx.arc(34,yOf(G.userLevel),5,0,Math.PI*2);pctx.fill();
+  // 박 표시
+  const next=((Math.floor(G.pos+.5)+1)%bpb+bpb)%bpb,j=G.judge&&t-G.judge.t<300?G.judge:null;
+  const r=Math.min(26,W/(bpb*4)),gap=r*3.2,x0=W/2-gap*(bpb-1)/2,cy=H*.5;
+  for(let i=0;i<bpb;i++){
+    let fill='rgba(231,194,125,.1)',txt='rgba(231,194,125,.4)',rr=r*(i===0?1.15:1);
+    if(i===next){fill='rgba(231,194,125,.28)';txt='rgba(255,240,205,.9)';}
+    if(j&&j.k===i){fill=j.ok?'rgba(127,217,154,.6)':'rgba(255,190,90,.6)';txt='#fff';rr*=1.15;}
+    pctx.fillStyle=fill;pctx.beginPath();pctx.arc(x0+i*gap,cy,rr,0,Math.PI*2);pctx.fill();
+    pctx.fillStyle=txt;pctx.font=`700 ${Math.round(rr)}px -apple-system,sans-serif`;pctx.textAlign='center';pctx.fillText(i+1,x0+i*gap,cy+1);
+  }
+  pctx.restore();
+}
+// (이전 도형 방식 — 사용 안 함)
 // 지휘 도형 (반투명 안내): 박마다 꺾이는 지점. 마지막 박은 위(꼭대기), 거기서 1박으로 내려친다.
 // pts = 박 지점(정규화 좌표), ctrl[i] = pts[i]→pts[i+1] 곡선 제어점
 const PATTERN={
@@ -959,7 +974,7 @@ function finish(){
       <tr class="tot"><td>S 총점 ${(Acc.user?cloudBest:isBest)?'· 최고 기록!':''}</td><td>${S}</td></tr>
     </table>
     <p class="note">적발 ${caught}/${spawned} (${byType}) · 놓침 ${G.missed} · 평균 적발 시간 Δt ${avgDt}초<br>
-    지휘법 정확 ${G.patOk}박 · 도형 틀림 ${G.patBad}박 · 전체 ${G.totalBeats}박</p>
+    지휘한 박 ${G.patOk}/${G.totalBeats}</p>
     <p class="note" id="cloudNote">${Acc.user?'기록 저장 중…':(Acc.sb?'로그인하면 기록이 계정에 저장된다.':'')}</p>
     <div class="btns"><button id="rMenu">메뉴</button><button class="pri" id="rAgain">다시 하기</button></div>`;
   $('result').classList.remove('hidden');
