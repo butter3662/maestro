@@ -162,7 +162,7 @@ table.res td:last-child{text-align:right;font-variant-numeric:tabular-nums}
     <div class="card" id="acct"></div>
     <h2>소리</h2>
     <label class="card" style="display:flex;align-items:center;gap:12px"><input type="checkbox" id="spatial" style="width:22px;height:22px;accent-color:#c99a4f"><span><b>공간 음향(서라운드)</b><div class="meta">이어폰 전용. 지휘대에 선 위치에서 각 단원 소리가 앞·좌우·거리감 있게 들린다. 스피커로 들을 때는 끄는 게 낫다.</div></span></label>
-    <div class="ver">Maestro v0.1.7</div>
+    <div class="ver">Maestro v0.1.8</div>
   </div>
   <nav id="tabbar"><button data-tab="songs" class="on"><i>🎼</i>곡</button><button data-tab="set"><i>⚙️</i>설정</button></nav>
 </section>
@@ -721,20 +721,30 @@ function onIctus(amp,at,x,y){
   if(!G.running)return;
   const real=ctx.currentTime;
   if(at==null||at>real)at=real;
-  if(G.lastIctus!=null&&(at-G.lastIctus)*G.baseRate<.45)return;   // 반 박 이내 중복 입력 무시
   const tr=G.song.bars[barIndexAt(Math.max(0,G.pos))].tp/60;
-  // 템포 추정: 박 간격(빠뜨린 박 1개까지 허용) → 지수 평활
+  // 1) 목표 템포 기준 0.7박 안의 두 번째 입력은 무시 (현재 템포 기준이면 빨라질수록 문이 좁아져 폭주함)
+  if(G.lastIctus!=null&&(at-G.lastIctus)<.7/tr)return;
+  // 2) 소리는 출력 지연(블루투스 이어폰 등)만큼 늦게 들리므로, 들은 소리 기준 박 위치로 환산
+  const lat=(ctx.outputLatency||0)+(ctx.baseLatency||0);
+  const pa=posAt(at-lat),n=Math.round(pa),err=n-pa;
+  // 3) 이미 친 박 번호이거나 그 이전이면 무시 (같은 박 중복 → 다음 박으로 착각하는 것 방지)
+  if(G.lastIctusBeat!=null&&n<=G.lastIctusBeat)return;
+  // 4) 템포: 연속한 박(또는 1박 건너뜀) 간격만 사용, 한 번에 ±8%까지만, 지수 평활
   if(G.lastIctus!=null){
-    const dt=at-G.lastIctus,k=Math.max(1,Math.round(dt*G.baseRate));
-    if(k<=2&&dt>.2){const inst=clamp(k/dt,tr*.5,tr*1.8);G.baseRate=.65*G.baseRate+.35*inst;}
+    const gap=n-G.lastIctusBeat,dt=at-G.lastIctus;
+    if(gap>=1&&gap<=2&&dt>.2){
+      let inst=clamp(gap/dt,tr*.6,tr*1.4);
+      inst=clamp(inst,G.baseRate*.92,G.baseRate*1.08);
+      G.baseRate=.7*G.baseRate+.3*inst;
+    }
   }
-  // 위상 보정: 들리는 박 위치와 지휘 박의 차이를 다음 1박 동안 최대 ±12% 템포로 메움
-  const pa=posAt(at),n=Math.round(pa),err=n-pa;
-  G.corr=clamp(err*.5,-.12,.12);G.corrUntil=G.fB+1;
+  G.baseRate=clamp(G.baseRate,tr*.6,tr*1.4);
+  // 5) 위상 보정: 0.08박 이상 어긋났을 때만, 다음 1박 동안 최대 ±6%
+  G.corr=Math.abs(err)>.08&&Math.abs(err)<.45?clamp(err*.3,-.06,.06):0;G.corrUntil=G.fB+1;
   G.rate=G.baseRate*(1+G.corr);
   if(amp!=null){const lv=clamp((amp/padS()-.12)/.45,0,1);G.userLevel=.45*G.userLevel+.55*lv;}
   const bpb=G.Q/G.qpb,k=((n%bpb)+bpb)%bpb,ok=judgePattern(k,x,y,bpb);
-  if(!G.ictus.has(n)||ok)G.ictus.set(n,ok);
+  G.ictus.set(n,ok);
   G.judge={k,ok,t:performance.now()};
   if(k===0)G.b1={x,y};G.lastPt={x,y};
   G.lastIctus=at;G.lastIctusBeat=n;
@@ -803,11 +813,13 @@ function moveSample(x,y,ms){
   const sk=G.sk,sp=Math.hypot(G.vx,G.vy);
   sk.hist.push({x,y,ms,vx:G.vx,vy:G.vy,sp});while(sk.hist.length&&ms-sk.hist[0].ms>140)sk.hist.shift();
   sk.peak=Math.max(sk.peak,sp);sk.ext=Math.max(sk.ext,Math.hypot(x-sk.sx,y-sk.sy));
-  const D=.07*padS(),gate=G.lastIctus!=null?(.55/G.baseRate)*1000:120;
+  const tr=G.song.bars[barIndexAt(Math.max(0,G.pos))].tp/60;
+  const D=.07*padS(),gate=G.lastIctus!=null?(.6/tr)*1000:120;
   if(ms-sk.lastMs<Math.max(110,gate)||sk.ext<D||sk.peak<.08)return;
   const win=sk.hist.filter(h=>ms-h.ms<=100);
   const old=win[0],mn=win.reduce((a,h)=>h.sp<a.sp?h:a,win[0]);
-  if(sp<Math.max(.02,.15*sk.peak)){fireIctus(mn);return;}                // 박점에서 멈칫한 경우
+  // 박점에서 멈칫한 경우 — 단, 거의 수직으로 올라와 멈춘 점(예비박 꼭대기)은 박이 아니다
+  if(sp<Math.max(.02,.15*sk.peak)){const f=win[0],dy=mn.y-f.y,dd=Math.hypot(mn.x-f.x,dy);if(!(dd>2&&dy<-.8*dd))fireIctus(mn);return;}
   if(!old||old.sp<.25*sk.peak||sp<.25*sk.peak)return;
   const cos=(old.vx*G.vx+old.vy*G.vy)/(old.sp*sp);
   const steepUp=old.vy<-.85*old.sp;                                        // 거의 수직 상승 → 리바운드
