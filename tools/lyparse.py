@@ -26,6 +26,14 @@ def pitch_name(tok, lang):
         base = t[0]
         if base not in 'cdefga': return None
         rest = t[1:]
+    elif lang == 'english':
+        base = t[0]
+        if base not in 'cdefgab': return None
+        rest = t[1:]; acc = 0
+        for suf, a in (('sharpsharp', 2), ('flatflat', -2), ('sharp', 1), ('flat', -1), ('ss', 2), ('x', 2), ('ff', -2), ('s', 1), ('f', -1)):
+            if rest == suf: return STEP[base], a
+        if rest == '': return STEP[base], 0
+        return None
     else:  # nederlands
         if t in ('es', 'ees'): return 2, -1
         if t in ('eses', 'eeses'): return 2, -2
@@ -62,7 +70,7 @@ TOKRE = re.compile(r'''
 |(?P<cmd>\\[A-Za-z]+)
 |(?P<chordo><)
 |(?P<chordc>>(?P<cdur>[0-9]*\.*(?:\*[0-9/]+)?))
-|(?P<note>[a-z]+[',]*[!?]?(?:=[',]*)?[0-9]*\.*(?:\*[0-9/]+)?)
+|(?P<note>(?:R|[a-z]+)[',]*[!?]?(?:=[',]*)?[0-9]*\.*(?:\*[0-9/]+)?)
 |(?P<brace>[{}])
 |(?P<tie>~)
 |(?P<other>\S)
@@ -117,6 +125,7 @@ class P:
         self.out = []; self.time = Fr(0); self.dur = Fr(1)  # 4분음표=1
         self.prev = None  # (step, octave) for relative
         self.scale = Fr(1); self.last_chord = None; self.pending_tie = {}
+        self.relmode = False; self.trans = 0; self.depth = 0; self.src = None; self.checks = []
 
     def peek(self, k=0):
         j = self.i + k
@@ -140,7 +149,7 @@ class P:
     def rel_pitch(self, name, octs, absolute=False):
         st, acc = name
         up = octs.count("'") - octs.count(',')
-        if self.prev is None or absolute:
+        if self.prev is None or absolute or not self.relmode:
             octv = 3 + up  # c = C3 (midi 48) ; c' = 60
         else:
             pst, poc = self.prev
@@ -157,11 +166,11 @@ class P:
     def emit(self, pitches, d, tie_next):
         dd = d * self.scale
         if pitches:
-            self.out.append([float(self.time), float(dd), pitches, tie_next])
+            self.out.append([float(self.time), float(dd), [x + self.trans for x in pitches], tie_next])
         self.time += dd
 
     def parse_note_tok(self, txt):
-        m = re.match(r"([a-z]+)([',]*)([!?]?)(?:=([',]*))?(.*)$", txt)
+        m = re.match(r"(R|[a-z]+)([',]*)([!?]?)(?:=([',]*))?(.*)$", txt)
         name, octs, _, _, rest = m.groups()
         return name, octs, rest
 
@@ -196,21 +205,26 @@ class P:
                 if d == 0: return
 
     def element(self):
+        self.steps = getattr(self, 'steps', 0) + 1
+        if self.steps > 400000: raise RuntimeError('parse loop at token %d' % self.i)
         k, v = self.take()
+        if k is None: return
         if k == 'brace' and v == '{':
             self.music('}'); return
         if k == 'dbl' and v == '<<':
-            # 첫 성부만 연주, \\ 이후 나머지 성부는 건너뜀
-            t0 = self.time; prev0 = self.prev
+            # 동시 진행: 각 성부를 같은 시작 시각에서 읽고, 끝은 가장 늦은 성부에 맞춘다 (모든 성부의 음을 씀)
+            t0 = self.time; ends = []
             while True:
                 k2, v2 = self.peek()
-                if k2 is None: return
+                if k2 is None: break
                 if k2 == 'dbl' and v2 == '\\\\':
-                    self.take(); t1 = self.time
-                    self.skip_balanced('<<', '>>'); return
+                    self.take(); continue
                 if k2 == 'dbl' and v2 == '>>':
-                    self.take(); return
-                self.element()
+                    self.take(); break
+                self.time = t0
+                self.element(); ends.append(self.time)
+            self.time = max(ends) if ends else t0
+            return
         if k == 'cmd':
             c = v
             if c == '\\relative':
@@ -220,6 +234,24 @@ class P:
                     pn = pitch_name(name, self.lang)
                     self.prev = None
                     if pn: self.rel_pitch(pn, octs, absolute=True)
+                else:
+                    self.prev = (0, 3)   # 기준음 생략 시 c'
+                old = self.relmode; self.relmode = True
+                self.element(); self.relmode = old
+                return
+            if c in ('\\transpose', '\\fixed'):
+                ps = []
+                for _ in range(2 if c == '\\transpose' else 1):
+                    k2, v2 = self.take(); name, octs, _ = self.parse_note_tok(v2)
+                    pn = pitch_name(name, self.lang)
+                    up = octs.count("'") - octs.count(',')
+                    ps.append((3 + up + 1) * 12 + SEMI[pn[0]] + pn[1])
+                if c == '\\transpose':
+                    old = self.trans; self.trans += ps[1] - ps[0]
+                    self.element(); self.trans = old
+                else:
+                    old = (self.relmode, self.trans); self.relmode = False; self.trans += ps[0] - 48
+                    self.element(); self.relmode, self.trans = old
                 return
             if c in ('\\times', '\\tuplet', '\\tupletSpan'):
                 k2, v2 = self.take()
@@ -242,7 +274,14 @@ class P:
                 if c == '\\afterGrace': self.skip_element()
                 return
             if c == '\\repeat':
-                self.take(); self.take()  # volta n
+                kind = (self.take()[1] or '').strip('"'); nrep = self.take()[1]
+                if kind in ('unfold', 'percent', 'tremolo'):
+                    try: n = int(re.sub(r'[^0-9]', '', nrep) or 1)
+                    except Exception: n = 1
+                    st = self.i
+                    for r in range(n):
+                        self.i = st; self.element()
+                    return
                 self.element()
                 if self.peek()[1] == '\\alternative':
                     self.take()
@@ -283,7 +322,16 @@ class P:
             if c in SKIP_ARGS and SKIP_ARGS[c]:
                 for _ in range(SKIP_ARGS[c]): self.take()
                 return
-            if c[1:] in self.defs:  # 사용자 정의 음악 변수
+            if c[1:] in self.defs and self.src is not None and self.depth < 8:  # 사용자 정의 음악 변수 펼치기
+                try: body = find_var(self.src, c[1:])
+                except BaseException: return
+                sub = tokenize(body)
+                if not any(k3 in ('note', 'chordo') for k3, _ in sub): return
+                save = (self.t, self.i, self.prev, self.relmode)
+                self.t, self.i = sub, 0; self.depth += 1
+                while self.i < len(self.t): self.element()
+                self.depth -= 1
+                self.t, self.i, self.prev, self.relmode = save[0], save[1], save[2], save[3]
                 return
             return  # 인자 없는 명령으로 간주
         if k == 'chordo':
@@ -320,6 +368,8 @@ class P:
             d = self.parse_dur(durtxt)
             self.emit([p], d, self.after_tie())
             return
+        if k == 'other' and v == '|' and self.depth == 0:
+            self.checks.append((float(self.time), self.i))
         # 기타 기호는 무시
         return
 
@@ -330,12 +380,13 @@ class P:
 
 
 def find_var(src, name):
-    m = re.search(r'(?m)^' + re.escape(name) + r'\s*=', src)
+    m = re.search(r'(?m)^[ \t]*' + re.escape(name) + r'\s*=', src)
     if not m: raise SystemExit('no var ' + name)
     i = m.end()
     # 첫 { 를 찾고 균형 맞춰 끝까지
     j = src.index('{', i)
     head = src[i:j]
+    if '=' in head or '\n\n' in head or len(head) > 80: raise SystemExit('not music ' + name)
     d = 0; k = j
     while k < len(src):
         if src[k] == '{': d += 1
@@ -366,11 +417,12 @@ def merge_ties(ev):
 
 def parse(path, var, lang):
     src = strip_comments(open(path, encoding='utf-8', errors='replace').read())
-    defs = set(re.findall(r'(?m)^([A-Za-z]+)\s*=', src))
+    defs = set(re.findall(r'(?m)^[ \t]*([A-Za-z]+)\s*=', src))
     body = find_var(src, var)
     toks = tokenize(body)
-    p = P(toks, lang, defs)
+    p = P(toks, lang, defs); p.src = src
     while p.i < len(p.t): p.element()
+    parse.checks = p.checks; parse.toks = p.t
     return merge_ties(p.out)
 
 
