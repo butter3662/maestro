@@ -166,7 +166,7 @@ table.res td:last-child{text-align:right;font-variant-numeric:tabular-nums}
     <h2>소리</h2>
     <label class="card" style="display:flex;align-items:center;gap:12px"><input type="checkbox" id="spatial" style="width:22px;height:22px;accent-color:#c99a4f"><span><b>공간 음향(서라운드)</b><div class="meta">이어폰 전용. 지휘대에 선 위치에서 각 단원 소리가 앞·좌우·거리감 있게 들린다. 스피커로 들을 때는 끄는 게 낫다.</div></span></label>
 
-    <div class="ver">Maestro v0.3.2</div>
+    <div class="ver">Maestro v0.4.0</div>
   </div>
   <nav id="tabbar"><button data-tab="songs" class="on"><i>🎼</i>곡</button><button data-tab="set"><i>⚙️</i>설정</button></nav>
 </section>
@@ -208,7 +208,7 @@ function parseBar(str){
     return {m:n==='r'?null:midiOf(n),d:parseFloat(d),tie,st};
   });
 }
-const QUAL={'':[0,4,7],'m':[0,3,7],'7':[0,4,7,10],'7b9':[0,4,7,10,13]};
+const QUAL={'':[0,4,7],'m':[0,3,7],'7':[0,4,7,10],'7b9':[0,4,7,10,13],'aug':[0,4,8],'dim':[0,3,6],'m7':[0,3,7,10]};
 function parseChord(s){
   const m=/^([A-G])(#|b)?(.*)$/.exec(s);
   if(!m||!QUAL[m[3]]) throw new Error('화음 오류: '+s);
@@ -322,7 +322,101 @@ const MACABRE={
   qPerBar:3,qPerBeat:1,countIn:3,key:7,style:'waltz',bassLo:40,fl:null,har:null,
   bars:rows([...DT,...DA('p'),...DB,...DA('p'),["G5:1' r:2",'Gm','f',210]])
 };
-const SONGS=[CANON,FLOWERS,MACABRE];
+// ---------- 추가 곡 (선율은 flutetunes.com 공개 플루트 악보에서 음을 확인, 화성·반주는 게임용 단순 편곡) ----------
+function mk(o,list){return Object.assign({countIn:Math.round(o.qPerBar/o.qPerBeat),bassLo:40,fl:null,har:null},o,{bars:rows(list)});}
+// 그리그: 산왕의 궁전에서 (B단조 4/4)
+const HM1=["B4:.5' C#5:.5' D5:.5' E5:.5' F#5:.5' D5:.5' F#5:1'",'Bm'],HM2=["E#5:.5' C#5:.5' E#5:1' E5:.5' C5:.5' E5:1'",'C#7 C'],
+  HM3=["B4:.5' C#5:.5' D5:.5' E5:.5' F#5:.5' D5:.5' F#5:.5' B5:.5'",'Bm'],HM4=["A5:.5' F#5:.5' D5:.5' F#5:.5' A5:2",'D'],
+  HM9=["F#4:.5' G#4:.5' A#4:.5' B4:.5' C#5:.5' A#4:.5' C#5:1'",'F#'],HM10=["D5:.5' A#4:.5' D5:1' C#5:.5' A#4:.5' C#5:1'",'Daug F#'],
+  HM12=["D5:.5' A#4:.5' D5:1' C#5:2",'Daug F#'],HM13=["F#5:.5' G#5:.5' A#5:.5' B5:.5' C#6:.5' A#5:.5' C#6:1'",'F#'],
+  HM14=["D6:.5' A#5:.5' D6:1' C#6:.5' A#5:.5' C#6:1'",'Daug F#'],HM16=["D6:.5' A#5:.5' D6:1' C#6:2",'Daug F#'],HMe=["F#5:.5' D5:.5' F#5:.5' B5:.5' B4:2",'Bm'];
+const MOUNTAIN=mk({id:'mountain',title:'산왕의 궁전에서',composer:'E. 그리그',meterTxt:'4/4',beatSym:'♩',kw:'hall of the mountain king grieg peer gynt 페르귄트',qPerBar:4,qPerBeat:1,key:11,style:'pulse'},
+  [[...HM1,'p',120],HM2,HM3,HM4,HM1,HM2,HM3,HM4,[...HM9,'mp',132],HM10,HM9,HM12,[...HM13,'mf'],HM14,HM13,HM16,[...HM1,'f',150],HM2,HM3,HM4,[...HM1,'ff',168],HM2,HM3,HMe]);
+// 베토벤: 환희의 송가 (D장조)
+const O1=['F#5:1 F#5:1 G5:1 A5:1','D'],O2=['A5:1 G5:1 F#5:1 E5:1','D A'],O3=['D5:1 D5:1 E5:1 F#5:1','D'],O4=['F#5:1.5 E5:.5 E5:2','D A'],
+  O8=['E5:1.5 D5:.5 D5:2','A D'],O9=['E5:1 E5:1 F#5:1 D5:1','A D'],O10=['E5:1 F#5:.5 G5:.5 F#5:1 D5:1','A D'],O11=['E5:1 F#5:.5 G5:.5 F#5:1 E5:1','A A'],
+  O12=['D5:1 E5:1 A4:1 F#5:1~','D A'],O13=['F#5:1 F#5:1 G5:1 A5:1','D'],O14=['A5:1 G5:1 F#5:1 G5:.5 E5:.5','D A'];
+const odeRun=d=>[[...O1,d],O2,O3,O4,O1,O2,O3,O8,O9,O10,O11,O12,O13,O14,O3,O8];
+const ODE=mk({id:'ode',title:'환희의 송가',composer:'L. v. 베토벤',meterTxt:'4/4',beatSym:'♩',kw:'ode to joy beethoven symphony 9 교향곡 9번 합창',qPerBar:4,qPerBeat:1,key:2,style:'pulse'},
+  [...odeRun('p').map((r,i)=>i===0?[r[0],r[1],'p',120]:r),...odeRun('f'),['D5:4','D','mf']]);
+// 모차르트: 아이네 클라이네 나흐트무지크 1악장 (G장조)
+const E1=["G5:1 r:.5 D5:.5' G5:1 r:.5 D5:.5'",'G'],E2=["G5:.5' D5:.5' G5:.5' B5:.5' D6:1 r:1",'G'],E3=["C6:1 r:.5 A5:.5' C6:1 r:.5 A5:.5'",'D7'],
+  E4=["C6:.5' A5:.5' F#5:.5' A5:.5' D5:1 r:1",'D7'],E5=["G5:.5' r:.5 G5:1.5 B5:.5 A5:.5' G5:.5'",'G'],E6=["G5:.5 F#5:.5 F#5:1.5 A5:.5 C6:.5 F#5:.5'",'D7'],
+  E7=["A5:.5 G5:.5 G5:1.5 B5:.5 A5:.5' G5:.5'",'G'],E9=["G5:.5' G5:.5' G5:.25 F#5:.25 E5:.25 F#5:.25 G5:.5' G5:.5' B5:.25 A5:.25 G5:.25 A5:.25",'G'],
+  E10=["B5:.5' B5:.5' D6:.25 C6:.25 B5:.25 C6:.25 D6:1 r:1",'G'];
+const KLEINE=mk({id:'kleine',title:'아이네 클라이네 나흐트무지크',composer:'W. A. 모차르트',meterTxt:'4/4',beatSym:'♩',kw:'eine kleine nachtmusik mozart serenade 세레나데',qPerBar:4,qPerBeat:1,key:7,style:'pulse'},
+  [[...E1,'f',132],E2,E3,E4,E5,E6,E7,E6,E9,E10,[...E1,'mf'],E2,E3,E4,E5,E6,E7,E6,E9,E10,[...E1,'f'],E2,E3,E4,['G5:1 D5:1 G4:2','G']]);
+// 차이콥스키: 백조의 호수 '정경' (B단조)
+const S1=['F#5:2 B4:.5 C#5:.5 D5:.5 E5:.5','Bm'],S2=['F#5:1.5 D5:.5 F#5:1.5 D5:.5','Bm'],S3=['F#5:1.5 B4:.5 D5:.5 B4:.5 G4:.5 D5:.5','Bm G'],
+  S4=['B4:2.5 E5:.5 D5:.5 C#5:.5','Bm F#7'],S8=['B4:3 B4:1','Bm'],S9=['C#5:1 D5:1 E5:1 F#5:.5 G5:.5','A A7'],S10=['A5:1.5 G5:.5 F#5:1 G5:.5 A5:.5','D'],
+  S11=['B5:1.5 A5:.5 G5:1 A5:.5 B5:.5','G Em'],S12=['C#6:1.5 B5:.5 F#5:.5 D5:.5 C#5:.5 B4:.5','F# Bm'],S16=['C6:1.5 G5:.5 E5:1 G5:.5 C6:.5','C'],
+  S17=['C#6:1.5 G#5:.5 C#6:1.5 F#5:.5','C#7 F#'],S18=['B5:1 r:3','Bm'];
+const SWAN=mk({id:'swan',title:'백조의 호수 — 정경',composer:'P. I. 차이콥스키',meterTxt:'4/4',beatSym:'♩',kw:'swan lake tchaikovsky scene 백조',qPerBar:4,qPerBeat:1,key:11,style:'block'},
+  [[...S1,'p',84],S2,S3,S4,S1,S2,S3,S8,[...S9,'mp'],S10,S11,S12,S9,S10,[...S11,'mf'],S16,[...S17,'f'],[...S18,'ff']]);
+// 요한 슈트라우스 2세: 아름답고 푸른 도나우 (D장조 3/4)
+const D1=['D4:1 F#4:1 A4:1','D'],D2=['A4:2 A5:1','D'],D3=['A5:1 r:1 F#5:1','D'],D4=['F#5:1 r:1 D4:1','D'],D7=['A5:1 r:1 G5:1','A7'],D8=['G5:1 r:1 C#4:1','A7'],
+  D9=['C#4:1 E4:1 B4:1','A7'],D10=['B4:2 B5:1','A7'],D11=['B5:1 r:1 G5:1','A7'],D15=['B5:1 r:1 F#5:1','D'],D18=['D5:2 D6:1','D'],D19=['D6:1 r:1 A5:1','D'],
+  D20=['A5:1 r:1 D4:1','D'],D23=['D6:1 r:1 B5:1','G'],D24=['B5:1 r:1 E5:1','G'],D25=["E5:1 G5:1 B5:.5 r:.5",'Em'],D26=['B5:3~','Em'],D27=['B5:1 G#5:1 A5:1','E7'],
+  D28=['F#6:3~','D'],D29=['F#6:1 D6:1 F#5:1','D'],D30=['F#5:2 E5:1','A7'],D31=['B5:2 A5:1','A7'],D32=["D5:1 r:.5 D5:.5 D5:1",'D'];
+const danRun=d=>[[...D1,d],D2,D3,D4,D1,D2,D7,D8,D9,D10,D11,D8,D9,D10,D15,D4,D1,D18,D19,D20,D1,D18,D23,D24,D25,[...D26,'ff'],D27,D28,D29,D30,D31,[...D32,'f']];
+const DANUBE=mk({id:'danube',title:'아름답고 푸른 도나우',composer:'J. 슈트라우스 2세',meterTxt:'3/4',beatSym:'♩',kw:'blue danube strauss waltz 왈츠 도나우강',qPerBar:3,qPerBeat:1,key:2,style:'waltz'},
+  [...danRun('p').map((r,i)=>i===0?[r[0],r[1],'p',180]:r),...danRun('mp'),['D5:3','D','mf']]);
+// 오펜바흐: 천국과 지옥 '캉캉' (D장조 2/4)
+const G1=["A4:.5' E5:.5' E5:.5' F#5:.5'",'A7'],G2=["E5:.5' D5:.5' D5:.5' F#5:.5'",'D'],G3=["G5:.5' B5:.5' D6:.5' B5:.5'",'G'],G4=["B5:.5' A5:.5' A5:1",'D'],
+  G5=["B5:.5' C#5:.5' C#5:.5' B5:.5'",'A7'],G6=["A5:.5' D5:.5' D5:.5' F#5:.5'",'D'],G7=["F#5:.5' E5:.5' F#5:.5' E5:.5'",'A7'],G9=["E5:.5' D5:.5' D5:1",'D'],
+  K1=['F#6:1 D6:1','D'],K2=['B5:1 A5:1','G D'],K3=["A5:.5 E5:.5 F#5:.5 G5:.5",'A7'],K4=["F#5:.5 E5:.5 D5:1",'D'],K7=["G#5:.5 A5:.5 B5:.5 C#6:.5",'E7'],K8=["E6:.5 D6:.5 D6:1",'D'];
+const CANCAN=mk({id:'cancan',title:'캉캉 (천국과 지옥)',composer:'J. 오펜바흐',meterTxt:'2/4',beatSym:'♩',kw:'can can cancan offenbach galop infernal orpheus 지옥의 오르페',qPerBar:2,qPerBeat:1,key:2,style:'pulse'},
+  [[...G1,'p',160],G2,G3,G4,G5,G6,G7,G7,G1,G2,G3,G4,G5,G6,G7,G9,[...K1,'ff'],K2,K3,K4,K1,K2,K7,K8,K1,K2,K3,K4,K1,K2,K7,K8,[...G1,'f'],G2,G3,G4,G5,G6,G7,G9,['D5:1 r:1','D','ff']]);
+// 브람스: 헝가리 무곡 5번 (F#단조 2/4)
+const U1=['C#5:1.5 F#5:.5','F#m'],U2=['A5:1.5 F#5:.5','F#m'],U3=['E#5:1.5 F#5:.25 G#5:.25','C#7'],U4=['F#5:2','F#m'],U5=['D5:1.5 E5:.25 F#5:.25','Bm'],
+  U6=['C#5:2','F#m'],U7=['B4:.25 A4:.25 A4:.25 G#4:.25 G#4:.75 C#5:.25','C#7'],U8=['F#4:2','F#m'],U9=['C#5:1.5 F#5:.25 A5:.25','F#m'],U10=['C#6:1.5 A5:.5','F#m'],
+  U11=['B5:1.5 A5:.25 B5:.25','Bm'],U12=['A5:2','F#m'],U13=['D5:.25 E5:.25 F#5:.25 D5:.25 C#5:.25 D5:.25 E5:.25 C#5:.25','Bm F#m'],
+  U14=['B4:.25 C#5:.25 D5:.25 B4:.25 A4:.25 B4:.25 C#5:.25 A4:.25','Bm F#m'],U16=["F#4:1 F#5:.5' r:.5",'F#m'],U25=['C#4:.75 F#4:.25 A4:.25 C#5:.25 F#5:.25 A5:.25','F#m'];
+const hunRun=()=>[[...U1,'f'],U2,U3,U4,U5,U6,U7,U8,U9,U10,U11,U12,[...U13,'p'],U14,U7,U16,[...U1,'f'],U2,U3,U4,U5,U6,U7,U8,U25,U10,U11,U12,[...U13,'p'],U14,U7,U16];
+const HUNGARIAN=mk({id:'hungarian',title:'헝가리 무곡 5번',composer:'J. 브람스',meterTxt:'2/4',beatSym:'♩',kw:'hungarian dance 5 brahms 헝가리안',qPerBar:2,qPerBeat:1,key:6,style:'pulse'},
+  [...hunRun().map((r,i)=>i===0?[r[0],r[1],'f',136]:r),...hunRun(),['F#4:1 r:1','F#m','ff']]);
+// 모차르트: 터키 행진곡 (A단조 2/4)
+const T0=["r:1 B4:.25 A4:.25 G#4:.25 A4:.25",'Am'],T1=["C5:.5' r:.5 D5:.25 C5:.25 B4:.25 C5:.25",'Am'],T2=["E5:.5' r:.5 F5:.25 E5:.25 D#5:.25 E5:.25",'Am'],
+  T3=["B5:.25 A5:.25 G#5:.25 A5:.25 B5:.25 A5:.25 G#5:.25 A5:.25",'Am'],T4=["C6:1 A5:.5' C6:.5'",'Am'],T5=["B5:.5' A5:.5' G5:.5' A5:.5'",'G Am'],
+  T7=["B5:.5' A5:.5' G5:.5' F#5:.5'",'G B7'],T8a=["E5:1 B4:.25 A4:.25 G#4:.25 A4:.25",'E'],T8=["E5:1 E5:.5' F5:.5'",'E C'],
+  T9=["G5:.5' G5:.5' A5:.25 G5:.25 F5:.25 E5:.25",'C'],T10=["D5:1 E5:.5' F5:.5'",'G'],T12=["D5:1 C5:.5' D5:.5'",'G'],T13=["E5:.5' E5:.5' F5:.25 E5:.25 D5:.25 C5:.25",'Am'],
+  T14=["B4:1 C5:.5' D5:.5'",'E'],T16=["B4:1 B4:.25 A4:.25 G#4:.25 A4:.25",'E'],T20=["C6:1 A5:.5' B5:.5'",'Am'],T21=["C6:.5' B5:.5' A5:.5' G#5:.5'",'Am E'],
+  T22=["A5:.5' E5:.5' F5:.5' D5:.5'",'F Dm'],T23=["C5:1 B4:.75 A4:.125 B4:.125",'Am E'],T24=["A4:2",'Am'];
+const turkB=()=>[[...T9,'mp'],T10,T9,T12,T13,T14,T13,T16,[...T1,'p'],T2,T3,[...T20,'f'],T21,T22,T23,T24];
+const TURKISH=mk({id:'turkish',title:'터키 행진곡',composer:'W. A. 모차르트',meterTxt:'2/4',beatSym:'♩',kw:'turkish march rondo alla turca mozart 터키',qPerBar:2,qPerBeat:1,key:9,style:'pulse'},
+  [[...T0,'p',126],T1,T2,T3,T4,T5,T5,T7,T8a,T1,T2,T3,T4,T5,T5,T7,T8,...turkB(),...turkB()]);
+// 비발디: 사계 중 '봄' 1악장 (E장조)
+const SP1=['G#5:.5 G#5:.5 G#5:.5 F#5:.25 E5:.25 B5:1.5 B5:.25 A5:.25','E'],SP3=['G#5:.5 A5:.25 B5:.25 A5:.5 G#5:.5 F#5:.5 D#5:.5 B4:.5 E5:.5','E B'],
+  SP6=['G#5:.5 A5:.25 B5:.25 A5:.5 G#5:.5 F#5:1 r:.5 E5:.5','E B'],SP7=['B5:.5 A5:.25 G#5:.25 A5:.5 B5:.5 C#6:.5 B5:1 E5:.5','E'],
+  SP9=['C#6:.5 B5:1 A5:.5 G#5:.5 F#5:.25 E5:.25 F#5:1','A B'],SP10=['E5:1 r:.5 E5:.5 B5:.5 A5:.25 G#5:.25 A5:.5 B5:.5','E'],
+  SP11=['C#6:.5 B5:1 E5:.5 B5:.5 A5:.25 G#5:.25 A5:.5 B5:.5','A E'],SP12=['C#6:.5 B5:1 E5:.5 C#6:.5 B5:1 A5:.5','A E'],SP13=['G#5:.5 F#5:.25 E5:.25 F#5:1 B5:1 B5:1','B'];
+const SPRING=mk({id:'spring',title:'사계 중 「봄」',composer:'A. 비발디',meterTxt:'4/4',beatSym:'♩',kw:'four seasons spring vivaldi 사계 봄',qPerBar:4,qPerBeat:1,key:4,style:'pulse'},
+  [[...SP1,'f',108],SP1,SP3,[...SP1,'p'],SP1,SP6,[...SP7,'f'],SP7,SP9,[...SP10,'p'],SP11,SP12,[...SP13,'f'],SP1,SP1,SP3,[...SP1,'p'],SP1,SP6,[...SP7,'f'],SP7,SP9,['E5:4','E']]);
+// 드보르작: 신세계 교향곡 2악장 '라르고' (Db장조)
+const N1=['F4:.75 Ab4:.25 Ab4:1 F4:.75 Eb4:.25 Db4:1','Db'],N2=['Eb4:.75 F4:.25 Ab4:.75 F4:.25 Eb4:2','Ab'],N4=['Eb4:.5 F4:.5 Eb4:.75 Db4:.25 Db4:2','Ab Db'],
+  N5=['Bb4:.75 Db5:.25 Db5:1 C5:.5 Ab4:.5 Bb4:1','Bbm Ab'],N6=['Bb4:.5 Db5:.5 C5:.5 Ab4:.5 Bb4:2','Ab Bbm'],N11=['F4:.75 Ab4:.25 Ab4:1 Db5:.75 Eb5:.25 F5:1','Db'],
+  N12=['Eb5:.75 Db5:.25 Eb5:.5 Bb4:.5 Db5:2','Gb Db'],N14=['Eb5:1.5 Db5:.5 Eb5:1 Bb4:1','Gb'],N15=['Db5:2.333 F4:.333 Ab4:.334 Bb4:.333 F5:.333 Ab5:.334','Db'],N16=['Db6:2 r:2','Db'];
+const LARGO=mk({id:'largo',title:'신세계 교향곡 2악장',composer:'A. 드보르작',meterTxt:'4/4',beatSym:'♩',kw:'new world symphony largo dvorak 신세계 라르고 꿈속의 고향',qPerBar:4,qPerBeat:1,key:1,style:'block'},
+  [[...N1,'p',56],N2,N1,N4,[...N5,'mp'],N6,N5,N6,[...N1,'pp'],N2,[...N11,'mp'],[...N12,'f'],[...N12,'pp'],N14,N15,[...N16,'p']]);
+// 그리그: 아침 기분 (E장조 6/8, 점4분음표 1박)
+const M1=['B5:.5 G#5:.5 F#5:.5 E5:.5 F#5:.5 G#5:.5','E'],M2=['B5:.5 G#5:.5 F#5:.5 E5:.5 F#5:.25 G#5:.25 F#5:.25 G#5:.25','E'],M3=['B5:.5 G#5:.5 B5:.5 C#6:.5 G#5:.5 C#6:.5','E A'],
+  M4=['B5:.5 G#5:.5 F#5:.5 E5:1 r:.5','E'],M5=['B4:.5 G#4:.5 F#4:.5 E4:.5 F#4:.5 G#4:.5','E'],M6=['B4:.5 G#4:.5 F#4:.5 E4:.5 F#4:.25 G#4:.25 F#4:.25 G#4:.25','E'],
+  M7=['B4:.5 G#4:.5 B4:.5 C#5:.5 G#4:.5 C#5:.5','E A'],M8=['D#5:.5 B#4:.5 A#4:.5 G#4:1.5','G#'],M9=['D#6:.5 B#5:.5 A#5:.5 G#5:.5 A#5:.5 B#5:.5','G#'],
+  M10=['D#6:.5 B#5:.5 A#5:.5 G#5:.5 A#5:.25 B#5:.25 A#5:.25 B#5:.25','G#'],M11=['D#6:.5 B#5:.5 D#6:.5 E6:.5 B#5:.5 E6:.5','G# C#m'],
+  M12=['D#6:.5 B#5:.5 A#5:.5 G#5:1 r:.5','G#'],M13=['D#5:.5 B#4:.5 A#4:.5 G#4:.5 A#4:.5 B#4:.5','G# B7'];
+const MORNING=mk({id:'morning',title:'아침 기분',composer:'E. 그리그',meterTxt:'6/8',beatSym:'♩.',kw:'morning mood grieg peer gynt 페르귄트 아침',qPerBar:3,qPerBeat:1.5,key:4,style:'block'},
+  [[...M1,'p',58],M2,M3,M4,M5,M6,M7,M8,[...M9,'mp'],M10,M11,M12,M13,[...M1,'f'],M2,M3,M4,[...M5,'mf'],M6,M7,['E5:3','E','p']]);
+// 베토벤: 엘리제를 위하여 (A단조 3/8, 8분음표 1박)
+const F0=['r:1 E5:.25 D#5:.25','Am'],F1=['E5:.25 D#5:.25 E5:.25 B4:.25 D5:.25 C5:.25','Am'],F2=['A4:.5 r:.25 C4:.25 E4:.25 A4:.25','Am'],
+  F3=['B4:.5 r:.25 E4:.25 G#4:.25 B4:.25','E'],F4=['C5:.5 r:.25 E4:.25 E5:.25 D#5:.25','Am'],F7=['B4:.5 r:.25 E4:.25 C5:.25 B4:.25','E'],
+  F8a=['A4:1 E5:.25 D#5:.25','Am'],F8b=['A4:.5 r:.25 B4:.25 C5:.25 D5:.25','Am'],F9=['E5:.75 G4:.25 F5:.25 E5:.25','C'],F10=['D5:.75 F4:.25 E5:.25 D5:.25','G'],
+  F11=['C5:.75 E4:.25 D5:.25 C5:.25','Am'],F12=['B4:.5 r:.25 E4:.25 E5:.25 D#5:.25','E'];
+const eliseA=()=>[F1,F2,F3,F4,F1,F2,F7];
+const ELISE=mk({id:'elise',title:'엘리제를 위하여',composer:'L. v. 베토벤',meterTxt:'3/8',beatSym:'♪',kw:'fur elise für elise beethoven 엘리제',qPerBar:1.5,qPerBeat:.5,key:9,style:'block'},
+  [[...F0,'pp',144],...eliseA(),F8a,...eliseA(),F8b,[...F9,'mf'],F10,F11,F12,[...F1,'p'],...eliseA().slice(1),F8b,F9,F10,F11,F12,...eliseA(),['A4:1.5','Am','pp']]);
+
+const SONGS=[ODE,ELISE,SPRING,KLEINE,CANON,TURKISH,SWAN,FLOWERS,DANUBE,CANCAN,HUNGARIAN,MOUNTAIN,MORNING,LARGO,MACABRE];
+
 
 /* =========================================================
    3. 악기 · 난이도 설정
@@ -403,13 +497,21 @@ function compile(song,diff){
   lines.cb=lines.bass.map(n=>({...n,m:n.m-12>=28?n.m-12:n.m,v:.8}));
   const voicing=c=>pcsOf(c).map(pc=>place(pc,55)).sort((a,b)=>a-b);
   lines.pno=[];
-  if(song.style==='waltz') chords.forEach(c=>{
+  if(song.style==='pulse'){
+    // 박마다 화음 + 마디 첫 박에 베이스 (행진곡·빠른 곡)
+    const qb=song.qPerBeat;
+    bars.forEach((b,bi)=>{const q0=bi*Q;
+      lines.pno.push({q:q0,d:qb*.9,m:place(chordAt(q0).root,36),v:.65,ci:0,kind:'bass'});
+      for(let qq=q0;qq<q0+Q-1e-9;qq+=qb){const c=chordAt(qq);voicing(c).forEach((m,i)=>lines.pno.push({q:qq,d:qb*.55,m,v:.36,ci:i,kind:'ch'}));}
+    });
+  }
+  else if(song.style==='waltz') chords.forEach(c=>{
     lines.pno.push({q:c.q,d:.9,m:place(c.root,36),v:.7,ci:0,kind:'bass'});
     for(let k=1;k<3;k++) voicing(c).forEach((m,i)=>lines.pno.push({q:c.q+k,d:.7,m,v:.42,ci:i,kind:'ch'}));
   });
   else chords.forEach(c=>voicing(c).forEach((m,i)=>lines.pno.push({q:c.q,d:c.dq*.9,m,v:.42,ci:i,kind:'ch'})));
   lines.tpt=[];
-  const step=Q===4?2:3;
+  const step=Q===4?2:Q;
   for(let qq=0;qq<endQ;qq+=step){
     const bi=Math.floor(qq/Q);if(dynOf(bi)<.59)continue;
     const c=chordAt(qq);lines.tpt.push({q:qq,d:step*.92,m:place((c.root+c.ints[1])%12,62),v:.5});
