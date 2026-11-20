@@ -26,6 +26,14 @@ def pitch_name(tok, lang):
         base = t[0]
         if base not in 'cdefga': return None
         rest = t[1:]
+    elif lang == 'italiano':
+        IT = {'do': 0, 're': 1, 'mi': 2, 'fa': 3, 'sol': 4, 'la': 5, 'si': 6}
+        for nm_, st_ in sorted(IT.items(), key=lambda x: -len(x[0])):
+            if t.startswith(nm_):
+                rest = t[len(nm_):]
+                A = {'': 0, 'd': 1, 'dd': 2, 'b': -1, 'bb': -2, 'sd': 1, 'sb': -1, 'qd': 0, 'qb': 0}
+                return (st_, A[rest]) if rest in A else None
+        return None
     elif lang == 'english':
         base = t[0]
         if base not in 'cdefgab': return None
@@ -278,9 +286,9 @@ class P:
                 if kind in ('unfold', 'percent', 'tremolo'):
                     try: n = int(re.sub(r'[^0-9]', '', nrep) or 1)
                     except Exception: n = 1
-                    st = self.i
+                    st = self.i; p0 = self.prev
                     for r in range(n):
-                        self.i = st; self.element()
+                        self.i = st; self.prev = p0; self.element()   # 상대 음높이는 한 번만 계산된 것과 같게
                     return
                 self.element()
                 if self.peek()[1] == '\\alternative':

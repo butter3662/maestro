@@ -118,7 +118,14 @@ mel = lyparse.parse(F + d + 'melody.ly', 'melody', NL); up = lyparse.parse(F + d
 add('trout', '송어', 'F. 슈베르트', '2/4', '♩', 'trout forelle schubert 송어 슈베르트', Q, 1, 1, 80, 'mf', False,
     {'v': flat(mel, 0, nb * Q), 'up': flat(up, 0, nb * Q), 'lo': flat(lo, 0, nb * Q)}, nb, 'Mutopia Project',
     mapping={'mel': [['v', 0]], 'har': [['up', 0, 'beat']], 'bass': [['lo', 0]], 'cb': [['lo', -12, 'low']], 'pno': [['up', 0], ['lo', 0]],
-             'fl': [['up', 0]], 'tpt': [['v', 0, 'beat']], 'timp': []})
+             'fl': [['v', 12]], 'tpt': [['v', 0, 'beat']], 'timp': []})
+# 9-2 마왕 4/4 (노래 + 피아노), 1~32마디
+f = 'SchubertF/D328/Erlkoenig/Erlkoenig.ly'; Q = 4; nb = 32
+mel = lyparse.parse(F + f, 'meloNote', 'italiano'); up = lyparse.parse(F + f, 'pianoHautNote', 'italiano'); lo = lyparse.parse(F + f, 'pianoBasNotePart', 'italiano')
+add('erlkonig', '마왕', 'F. 슈베르트', '4/4', '♩', 'erlkonig erlkoenig erlking schubert 마왕 슈베르트', Q, 1, 7, 152, 'f', False,
+    {'v': flat(mel, 0, nb * Q), 'up': flat(up, 0, nb * Q), 'lo': flat(lo, 0, nb * Q)}, nb, 'Mutopia Project',
+    mapping={'mel': [['v', 0]], 'har': [['up', 0, 'beat']], 'bass': [['lo', 0]], 'cb': [['lo', -12, 'low']], 'pno': [['up', 0], ['lo', 0]],
+             'fl': [['v', 12]], 'tpt': [['lo', 12, 'beat']], 'timp': []})
 # 10 작은 별 변주곡 (기타 2중주 편곡: 주제 + 1변주)
 f = 'MozartWA/KV265/guitar-duo-complete/guitar-duo-complete-lys/guitar-duo-complete.ly'; Q = 2
 a = seq([(f, 'themaA', NL, 0), (f, 'varIA', NL, 0)], Q); c = seq([(f, 'themaC', NL, 0), (f, 'varIC', NL, 0)], Q); nb = 40

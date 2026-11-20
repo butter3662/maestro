@@ -16,7 +16,7 @@
 - 보스곡: [Mutopia Project](https://www.mutopiaproject.org) LilyPond 소스의 음을 파서로 읽어 사용.
   - 쇼팽 에튀드 Op.10 No.1·5·12 — Roland Goretzki 조판, 퍼블릭 도메인
   - 리스트 라 캄파넬라(앞 20마디) — pianoclassics.net 퍼블릭 도메인 악보(MuseScore PDF)에서 음 위치를 읽어 변환
-  - 베토벤 운명 1악장(피아노 편곡)·비창 3악장, 브람스 자장가, 쇼팽 강아지 왈츠·즉흥환상곡, 슈베르트 송어, 모차르트 작은 별 변주곡(기타 2중주 편곡), 드뷔시 달빛 — Mutopia Project, 퍼블릭 도메인
+  - 베토벤 운명 1악장(피아노 편곡)·비창 3악장, 브람스 자장가, 쇼팽 강아지 왈츠·즉흥환상곡, 슈베르트 송어·마왕, 모차르트 작은 별 변주곡(기타 2중주 편곡), 드뷔시 달빛 — Mutopia Project, 퍼블릭 도메인
   - 파가니니 카프리스 24번 — Samuel Rummel 조판, CC BY-SA 4.0
   - 멘델스존 결혼 행진곡 — Alexander Brock 조판, CC BY-SA 4.0
   - 비제 카르멘 전주곡 — Alex O'S 조판, CC BY-SA 2.5
