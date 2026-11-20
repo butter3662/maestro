@@ -21,6 +21,8 @@
   - 멘델스존 결혼 행진곡 — Alexander Brock 조판, CC BY-SA 4.0
   - 비제 카르멘 전주곡 — Alex O'S 조판, CC BY-SA 2.5
   - 림스키코르사코프 왕벌의 비행, 슈베르트·리스트 세레나데, 비제 하바네라 — pianoclassics.net 퍼블릭 도메인 악보(MuseScore PDF)에서 음 위치를 읽어 변환
+  - 쇼팽 겨울바람 — Knute Snortum 조판(github.com/ksnortum/chopin-opus-25), CC BY-SA 4.0
+  - 차이콥스키 사탕요정의 춤 — github.com/neonscribe/lilypond-lead-sheets 리드시트(Unlicense)의 선율·화음 기호로 반주 생성
   - 헨델 「메시아」 할렐루야 — Joshua Koo 조판, 퍼블릭 도메인
   - 바흐 관현악 모음곡 3번 Air(G선상의 아리아) — jeff covey 조판, CC BY-SA 3.0
   - 바흐 무반주 첼로 모음곡 1번 전주곡 — Andreas Scherer 조판, 퍼블릭 도메인

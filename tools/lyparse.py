@@ -235,7 +235,7 @@ class P:
                     self.prev = None
                     if pn: self.rel_pitch(pn, octs, absolute=True)
                 else:
-                    self.prev = (0, 3)   # 기준음 생략 시 c'
+                    self.prev = None   # 기준음 생략: 첫 음을 절대 음높이로
                 old = self.relmode; self.relmode = True
                 self.element(); self.relmode = old
                 return
@@ -253,7 +253,7 @@ class P:
                     old = (self.relmode, self.trans); self.relmode = False; self.trans += ps[0] - 48
                     self.element(); self.relmode, self.trans = old
                 return
-            if c in ('\\times', '\\tuplet', '\\tupletSpan'):
+            if c in ('\\times', '\\tuplet', '\\tupletSpan', '\\scaleDurations'):
                 k2, v2 = self.take()
                 frac = v2
                 # 다음 토큰이 '/' 형태로 나뉘었을 수 있음
@@ -264,9 +264,9 @@ class P:
                     a, b = [int(x) for x in re.findall(r'[0-9]+', frac)[:2]]
                 except Exception:
                     a, b = 2, 3
-                f = Fr(a, b) if c == '\\times' else Fr(b, a)
-                if self.peek()[0] == 'note' and re.match(r'^[0-9]', self.peek()[1] or ''):
-                    self.take()  # \tuplet 3/2 4 { } 의 묶음 길이
+                f = Fr(a, b) if c in ('\\times', '\\scaleDurations') else Fr(b, a)
+                while (self.peek()[0] in ('note', 'other') and re.match(r'^[0-9.]', self.peek()[1] or '')):
+                    self.take()  # \tuplet 3/2 4 { } 의 묶음 길이(숫자·점)
                 old = self.scale; self.scale = self.scale * f
                 self.element(); self.scale = old; return
             if c in ('\\grace', '\\acciaccatura', '\\appoggiatura', '\\slashedGrace', '\\afterGrace'):
