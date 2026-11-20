@@ -172,7 +172,7 @@ table.res td:last-child{text-align:right;font-variant-numeric:tabular-nums}
 
     <h2>정보</h2>
     <div class="card"><div class="meta" style="line-height:1.6">일반 곡의 선율은 flutetunes.com 공개 플루트 악보로 음을 확인했고 반주는 게임용으로 편곡했다.<br>보스곡(쇼팽 에튀드 3곡, 월광 3악장)과 할렐루야·G선상의 아리아·첼로 모음곡 전주곡은 Mutopia Project의 악보 소스를 읽어 원곡 음을 그대로 썼다. 월광 소나타 3악장 악보: Chris Sawer, Stewart Holmes 조판, CC BY-SA 2.5. 쇼팽 에튀드 악보: Roland Goretzki 조판, 퍼블릭 도메인. 라 캄파넬라: pianoclassics.net의 퍼블릭 도메인 악보(MuseScore 조판)에서 음을 읽어 앞부분 20마디를 썼다. 운명·비창 3악장·자장가·강아지 왈츠·즉흥환상곡·송어·작은 별 변주곡·달빛: Mutopia Project 퍼블릭 도메인 악보. 카프리스 24번: Samuel Rummel 조판, CC BY-SA 4.0. 결혼 행진곡: Alexander Brock 조판, CC BY-SA 4.0. 카르멘 전주곡: Alex O'S 조판, CC BY-SA 2.5. 왕벌의 비행·세레나데(리스트 편곡)·하바네라: pianoclassics.net 퍼블릭 도메인 악보. 겨울바람: Knute Snortum 조판, CC BY-SA 4.0. 사탕요정의 춤: neonscribe/lilypond-lead-sheets 리드시트(퍼블릭 도메인 헌정)의 선율·화음으로 반주를 만들었다. G선상의 아리아 악보: jeff covey 조판, CC BY-SA 3.0. 할렐루야 악보: Joshua Koo 조판, 첼로 모음곡 1번 전주곡 악보: Andreas Scherer 조판, 퍼블릭 도메인.</div></div>
-    <div class="ver">Maestro v0.4.9</div>
+    <div class="ver">Maestro v0.5.0</div>
   </div>
   <nav id="tabbar"><button data-tab="songs" class="on"><i>🎼</i>곡</button><button data-tab="set"><i>⚙️</i>설정</button></nav>
 </section>
@@ -389,7 +389,7 @@ const T0=["r:1 B4:.25 A4:.25 G#4:.25 A4:.25",'Am'],T1=["C5:.5' r:.5 D5:.25 C5:.2
   T14=["B4:1 C5:.5' D5:.5'",'E'],T16=["B4:1 B4:.25 A4:.25 G#4:.25 A4:.25",'E'],T20=["C6:1 A5:.5' B5:.5'",'Am'],T21=["C6:.5' B5:.5' A5:.5' G#5:.5'",'Am E'],
   T22=["A5:.5' E5:.5' F5:.5' D5:.5'",'F Dm'],T23=["C5:1 B4:.75 A4:.125 B4:.125",'Am E'],T24=["A4:2",'Am'];
 const turkB=()=>[[...T9,'mp'],T10,T9,T12,T13,T14,T13,T16,[...T1,'p'],T2,T3,[...T20,'f'],T21,T22,T23,T24];
-const TURKISH=mk({id:'turkish',title:'터키 행진곡',composer:'W. A. 모차르트',meterTxt:'2/4',beatSym:'♩',kw:'turkish march rondo alla turca mozart 터키',qPerBar:2,qPerBeat:1,key:9,style:'pulse'},
+const TURKISH=mk({id:'turkish',title:'터키 행진곡',composer:'W. A. 모차르트',meterTxt:'2/4',beatSym:'♩',kw:'turkish march rondo alla turca mozart 터키',qPerBar:2,qPerBeat:1,key:9,style:'turca'},
   [[...T0,'p',126],T1,T2,T3,T4,T5,T5,T7,T8a,T1,T2,T3,T4,T5,T5,T7,T8,...turkB(),...turkB()]);
 // 비발디: 사계 중 '봄' 1악장 (E장조)
 const SP1=['G#5:.5 G#5:.5 G#5:.5 F#5:.25 E5:.25 B5:1.5 B5:.25 A5:.25','E'],SP3=['G#5:.5 A5:.25 B5:.25 A5:.5 G#5:.5 F#5:.5 D#5:.5 B4:.5 E5:.5','E B'],
@@ -605,6 +605,15 @@ function compile(song,diff){
       for(let qq=q0;qq<q0+Q-1e-9;qq+=qb){const c=chordAt(qq);voicing(c).forEach((m,i)=>lines.pno.push({q:qq,d:qb*.55,m,v:.36,ci:i,kind:'ch'}));}
     });
   }
+  else if(song.style==='turca'){
+    // 터키 행진곡 왼손: 8분음표마다 「둥(베이스)·당·당·당(화음)」
+    bars.forEach((b,bi)=>{for(let k=0;k<Q/.5;k++){const qq=bi*Q+k*.5,c=chordAt(qq);
+      if(k%4===0) lines.pno.push({q:qq,d:.45,m:place(c.root,48),v:.62,ci:0,kind:'bass'});
+      else pcsOf(c).filter((pc,i)=>i>0).map(pc=>place(pc,59)).sort((a,b)=>a-b).slice(0,2).forEach((m,i)=>lines.pno.push({q:qq,d:.4,m,v:.38,ci:i+1,kind:'ch'}));}});
+    // 첼로도 마디 첫 8분음표만 짧게 「둥」
+    lines.bass=bars.map((b,bi)=>({q:bi*Q,d:.45,m:place(chordAt(bi*Q).root,song.bassLo),v:.72}));
+    lines.cb=lines.bass.map(n=>({...n,m:n.m-12>=28?n.m-12:n.m,v:.78}));
+  }
   else if(song.style==='waltz') chords.forEach(c=>{
     lines.pno.push({q:c.q,d:.9,m:place(c.root,36),v:.7,ci:0,kind:'bass'});
     for(let k=1;k<3;k++) voicing(c).forEach((m,i)=>lines.pno.push({q:c.q+k,d:.7,m,v:.42,ci:i,kind:'ch'}));
@@ -759,7 +768,7 @@ function renderMenu(){
     const diffs=open?`<div class="diffs">${Object.entries(DIFF).map(([k,d])=>{const b=best[s.id+'/'+k];
         return `<div class="dbtn ${k===selDiff?'sel':''}" data-diff="${k}"><b>${d.name}</b><small>${LAYOUT[k].length}명${b!=null?` · <span class="bs">최고 ${b}</span>`:''}</small></div>`;}).join('')}</div>
       <button class="go" data-go="1">연주 시작</button>`:'';
-    return `<div class="card song ${open?'sel':''} ${s.boss?'boss':''}" data-song="${s.id}">${s.boss?'<span class="bossTag">👑 보스</span>':''}${s.eva?'<span class="evaTag">EVA</span>':''}<b>${s.title}</b><div class="meta">${s.composer} · ${s.meterTxt} · ${s.beatSym}=${s.bars[0].tp}</div>${diffs}</div>`;
+    return `<div class="card song ${open?'sel':''} ${s.boss?'boss':''}" data-song="${s.id}">${s.boss?'<span class="bossTag">👑 보스</span>':''}<b>${s.title}</b><div class="meta">${s.composer} · ${s.meterTxt} · ${s.beatSym}=${s.bars[0].tp}</div>${diffs}</div>`;
   }).join('');
 }
 $('songCards').addEventListener('click',e=>{
