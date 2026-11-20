@@ -133,7 +133,8 @@ table.res td:last-child{text-align:right;font-variant-numeric:tabular-nums}
 .song.boss{border-color:#7a2a2a;background:linear-gradient(135deg,#2a1414,#1d1512)}
 .evaTag{float:right;font-size:11px;color:#c7a6ff;font-weight:800;border:1px solid #6b4ca3;border-radius:6px;padding:0 5px;margin-left:6px}
 .bossTag{float:right;font-size:12px;color:#ff9c8a;font-weight:700}
-.song .diffs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+.song .diffs{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:12px}
+.song .dbtn b{font-size:14px;word-break:keep-all}
 .song .dbtn{background:#1a1310;border:1px solid var(--line);border-radius:12px;padding:10px 4px;text-align:center}
 .song .dbtn.sel{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold) inset;background:#2a1f18}
 .song .dbtn small{display:block;color:var(--dim);font-size:12px;margin-top:2px}
@@ -171,7 +172,7 @@ table.res td:last-child{text-align:right;font-variant-numeric:tabular-nums}
 
     <h2>정보</h2>
     <div class="card"><div class="meta" style="line-height:1.6">일반 곡의 선율은 flutetunes.com 공개 플루트 악보로 음을 확인했고 반주는 게임용으로 편곡했다.<br>보스곡(쇼팽 에튀드 3곡, 월광 3악장)과 할렐루야·G선상의 아리아·첼로 모음곡 전주곡은 Mutopia Project의 악보 소스를 읽어 원곡 음을 그대로 썼다. 월광 소나타 3악장 악보: Chris Sawer, Stewart Holmes 조판, CC BY-SA 2.5. 쇼팽 에튀드 악보: Roland Goretzki 조판, 퍼블릭 도메인. 라 캄파넬라: pianoclassics.net의 퍼블릭 도메인 악보(MuseScore 조판)에서 음을 읽어 앞부분 20마디를 썼다. G선상의 아리아 악보: jeff covey 조판, CC BY-SA 3.0. 할렐루야 악보: Joshua Koo 조판, 첼로 모음곡 1번 전주곡 악보: Andreas Scherer 조판, 퍼블릭 도메인.</div></div>
-    <div class="ver">Maestro v0.4.5</div>
+    <div class="ver">Maestro v0.4.6</div>
   </div>
   <nav id="tabbar"><button data-tab="songs" class="on"><i>🎼</i>곡</button><button data-tab="set"><i>⚙️</i>설정</button></nav>
 </section>
@@ -465,8 +466,10 @@ const INST={
 const LAYOUT={
   easy  :[['violin','mel',-.5,0],['cello','bass',.5,0],['piano','pno',0,1]],
   normal:[['violin','mel',-.6,0],['cello','bass',.6,0],['piano','pno',-.55,1],['flute','fl',0,1],['trumpet','tpt',.55,1]],
-  // 어려움: [악기, 역할, 소리 좌우, 줄(0 앞·1 중간·2 뒤), 화면 x]
-  hard  :[['violin','mel',-.82,0,-.76],['violin','mel',-.58,0,-.38],['violin','mel',-.34,0,0],['violin2','har',-.1,0,.38],['cello','bass',.3,0,.76],
+  hard  :[['violin','mel',-.6,0],['violin2','har',0,0],['cello','bass',.6,0],
+          ['piano','pno',-.78,1],['flute','fl',-.26,1],['trumpet','tpt',.26,1],['cb','cb',.78,1]],
+  // 매우 어려움: [악기, 역할, 소리 좌우, 줄(0 앞·1 중간·2 뒤), 화면 x]
+  expert:[['violin','mel',-.82,0,-.76],['violin','mel',-.58,0,-.38],['violin','mel',-.34,0,0],['violin2','har',-.1,0,.38],['cello','bass',.3,0,.76],
           ['cb','cb',.62,1,.66],['piano','pno',-.72,1,-.66],['flute','fl',-.28,1,-.22],['trumpet','tpt',.12,1,.22],
           ['timp','timp',.48,2,-.25],['perc','perc',.82,2,.25]]
 };
@@ -476,8 +479,10 @@ const DIFF={
           info:'바이올린·첼로·피아노 3명. 음정 반음, 박자 반 박 어긋난다.'},
   normal:{name:'보통',T:6,P:80,k:1.3,maxErr:3,mean:8,group:[.65,.27,.08],cents:50,off:.25,loud:1.5,soft:.62,skip:.5,hint:false,
           info:'+ 플루트·트럼펫 5명. 음정 반의 반음(50센트), 박자 반의 반 박 어긋난다.'},
-  hard  :{name:'어려움',T:5,P:100,k:1.6,maxErr:4,mean:7,group:[.5,.3,.14,.06],cents:25,off:.125,loud:1.35,soft:.7,skip:.45,hint:false,
-          info:'풀 편성 11명. 실수가 동시에 2개까지 난다. 음정 반의 반의 반음(25센트), 박자 반의 반의 반 박 어긋난다.'},
+  hard  :{name:'어려움',T:5,P:100,k:1.6,maxErr:3,mean:7,group:[.55,.3,.15],cents:25,off:.125,loud:1.35,soft:.7,skip:.45,hint:false,
+          info:'+ 제2바이올린·콘트라베이스 7명. 음정 반의 반의 반음(25센트), 박자 반의 반의 반 박 어긋난다.'},
+  expert:{name:'매우 어려움',T:4.5,P:120,k:2.0,maxErr:4,mean:6.5,group:[.5,.3,.14,.06],cents:25,off:.125,loud:1.35,soft:.7,skip:.45,hint:false,
+          info:'풀 편성 11명. 한 번에 최대 4명까지 틀린다. 음정 25센트, 박자 반의 반의 반 박 어긋난다.'},
 };
 const B0={dyn:100,mute:120,timing:150,pitch:180};
 const TYPE_KO={pitch:'음정',timing:'박자',dyn:'셈여림',mute:'입장'};
@@ -735,6 +740,8 @@ function spatialOn(){return $('spatial').checked;}
 function tickOn(){return false;}
 try{$('spatial').checked=localStorage.getItem('maestro-spatial')!=='0';}catch(e){$('spatial').checked=true;}
 $('spatial').addEventListener('change',()=>{try{localStorage.setItem('maestro-spatial',$('spatial').checked?'1':'0');}catch(e){}});
+(function(){try{if(localStorage.getItem('maestro-diff4'))return;const k='maestro-best2',o=JSON.parse(localStorage.getItem(k)||'{}'),n={};
+  for(const key in o){n[key.endsWith('/hard')?key.slice(0,-5)+'/expert':key]=o[key];}localStorage.setItem(k,JSON.stringify(n));localStorage.setItem('maestro-diff4','1');}catch(e){}})();
 function loadBest(){try{return JSON.parse(localStorage.getItem(bestKey())||'{}');}catch(e){return {};}}
 function saveBest(o){try{localStorage.setItem(bestKey(),JSON.stringify(o));}catch(e){}}
 
@@ -749,7 +756,7 @@ function renderMenu(){
     const open=s.id===selSong;
     const diffs=open?`<div class="diffs">${Object.entries(DIFF).map(([k,d])=>{const b=best[s.id+'/'+k];
         return `<div class="dbtn ${k===selDiff?'sel':''}" data-diff="${k}"><b>${d.name}</b><small>${LAYOUT[k].length}명${b!=null?` · <span class="bs">최고 ${b}</span>`:''}</small></div>`;}).join('')}</div>
-      <button class="go" data-go="1">지휘 시작</button>`:'';
+      <button class="go" data-go="1">연주 시작</button>`:'';
     return `<div class="card song ${open?'sel':''} ${s.boss?'boss':''}" data-song="${s.id}">${s.boss?'<span class="bossTag">👑 보스</span>':''}${s.eva?'<span class="evaTag">EVA</span>':''}<b>${s.title}</b><div class="meta">${s.composer} · ${s.meterTxt} · ${s.beatSym}=${s.bars[0].tp}</div>${diffs}</div>`;
   }).join('');
 }
@@ -822,7 +829,7 @@ function musicianSVG(i){
 }
 function buildStage(){
   const st=$('stage');st.querySelectorAll('.seat,.pop').forEach(n=>n.remove());
-  const three=G.diff==='hard';
+  const three=G.diff==='expert';
   const TOP=three?['84%','62%','44%']:['80%','52%'],SC=three?[.86,.74,.64]:[1.08,.9];
   G.seats.forEach((s,i)=>{
     const d=document.createElement('div');d.className='seat';
@@ -850,7 +857,7 @@ function scheduleEv(ev,t,now){
   const sd=G.barDyn[barIndexAt(ev.b)];
   const lvl=.5*sd+.5*G.userLevel,gain=.3+.85*lvl;
   const dur=Math.min(ev.dp/Math.max(G.rate,G.baseRate*.5),3);
-  const jit=(G.diff==='hard'&&seat.inst==='violin')?(Math.random()-.5)*.016:0;
+  const jit=(G.diff==='expert'&&seat.inst==='violin')?(Math.random()-.5)*.016:0;
   const at=Math.max(tt+jit,now);
   playNote(seat,at,m,dur,Math.min(1.25,v*gain));
   seat.on.push([at,at+Math.max(dur,.12),Math.min(1,v*gain)]);
@@ -879,7 +886,7 @@ function maybeSpawn(now){
     const solo=seatS.role==='mel'&&G.seats.filter(x=>x.role==='mel').length===1;
     const types=INST[seatS.inst].errs.filter(t=>t!=='mute'||(cnt[si]>=3&&!solo));
     G.errs.push({seat:si,type:pick(types),created:now,firstAt:null,deadline:null,done:false,
-      shift:(Math.random()<.5?-1:1)*c.cents,ci:G.diff==='hard'?1:0,
+      shift:(Math.random()<.5?-1:1)*c.cents,ci:G.diff==='expert'?1:0,
       off:(Math.random()<.6?1:-1)*c.off,mul:sd<=.6?c.loud:c.soft});
     G.spawned++;
   }
