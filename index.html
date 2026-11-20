@@ -166,7 +166,7 @@ table.res td:last-child{text-align:right;font-variant-numeric:tabular-nums}
     <h2>소리</h2>
     <label class="card" style="display:flex;align-items:center;gap:12px"><input type="checkbox" id="spatial" style="width:22px;height:22px;accent-color:#c99a4f"><span><b>공간 음향(서라운드)</b><div class="meta">이어폰 전용. 지휘대에 선 위치에서 각 단원 소리가 앞·좌우·거리감 있게 들린다. 스피커로 들을 때는 끄는 게 낫다.</div></span></label>
 
-    <div class="ver">Maestro v0.3.1</div>
+    <div class="ver">Maestro v0.3.2</div>
   </div>
   <nav id="tabbar"><button data-tab="songs" class="on"><i>🎼</i>곡</button><button data-tab="set"><i>⚙️</i>설정</button></nav>
 </section>
@@ -350,11 +350,11 @@ const LAYOUT={
 };
 const DIFF={
   // cents: 음정 어긋남(센트, 100센트 = 반음), off: 박자 어긋남(박 단위: 0.5 = 반 박), loud/soft: 셈여림 배율, skip: 입장 미스 때 빠뜨리는 음 비율
-  easy  :{name:'쉬움',T:7,P:60,k:1.0,maxErr:1,gap:[5,9],cents:100,off:.5,loud:1.7,soft:.55,skip:.6,hint:false,
+  easy  :{name:'쉬움',T:7,P:60,k:1.0,maxErr:2,mean:9,group:[.8,.2],clean:.1,cents:100,off:.5,loud:1.7,soft:.55,skip:.6,hint:false,
           info:'바이올린·첼로·피아노 3명. 음정 반음, 박자 반 박 어긋난다.'},
-  normal:{name:'보통',T:6,P:80,k:1.3,maxErr:1,gap:[4,8],cents:50,off:.25,loud:1.5,soft:.62,skip:.5,hint:false,
+  normal:{name:'보통',T:6,P:80,k:1.3,maxErr:3,mean:8,group:[.65,.27,.08],clean:.08,cents:50,off:.25,loud:1.5,soft:.62,skip:.5,hint:false,
           info:'+ 플루트·트럼펫 5명. 음정 반의 반음(50센트), 박자 반의 반 박 어긋난다.'},
-  hard  :{name:'어려움',T:5,P:100,k:1.6,maxErr:2,gap:[3,6],cents:25,off:.125,loud:1.35,soft:.7,skip:.45,hint:false,
+  hard  :{name:'어려움',T:5,P:100,k:1.6,maxErr:4,mean:7,group:[.5,.3,.14,.06],clean:.06,cents:25,off:.125,loud:1.35,soft:.7,skip:.45,hint:false,
           info:'풀 편성 11명. 실수가 동시에 2개까지 난다. 음정 반의 반의 반음(25센트), 박자 반의 반의 반 박 어긋난다.'},
 };
 const B0={dyn:100,mute:120,timing:150,pitch:180};
@@ -595,7 +595,7 @@ function startGame(songId,diff){
     Q:song.qPerBar,qpb:song.qPerBeat,idx:0,
     baseRate:song.bars[0].tp/60,rate:song.bars[0].tp/60,
     pos:-song.countIn-.3,fB:-song.countIn-.3,fT:ctx.currentTime+.05,hist:[[ctx.currentTime+.05,-song.countIn-.3]],corr:0,corrUntil:null,nextClick:-song.countIn,
-    errs:[],nextErrAt:ctx.currentTime+song.countIn*60/song.bars[0].tp+4,spawned:0,missed:0,caught:[],nf:0,
+    errs:[],clean:Math.random()<DIFF[diff].clean,nextErrAt:ctx.currentTime+song.countIn*60/song.bars[0].tp+1.5+expGap(DIFF[diff].mean),spawned:0,missed:0,caught:[],nf:0,
     scoreC:0,bonus:0,evaluated:-1,beatHits:0,ictus:new Map(),ivs:[],patOk:0,patBad:0,b1:null,lastPt:null,judge:null,sk:null,userLevel:.45,lastIctus:null,lastIctusBeat:null,
     padPtr:null,trail:[],ripples:[],running:true
   });
@@ -661,25 +661,34 @@ function scheduleEv(ev,t,now){
   seat.on.push([at,at+Math.max(dur,.12),Math.min(1,v*gain)]);
 }
 
+/* 실수 발생: 언제 날지 모른다.
+   - 다음 실수까지의 간격은 지수분포(평균 mean초) → 한참 안 나오기도, 연달아 나오기도 한다
+   - 한 번에 틀리는 사람 수는 group 확률(1명, 2명, …)에서 뽑는다
+   - clean 확률로 곡 전체가 실수 없이 끝나기도 한다 */
+const expGap=mean=>-Math.log(1-Math.random())*mean;
+function pickN(w){let r=Math.random(),acc=0;for(let i=0;i<w.length;i++){acc+=w[i];if(r<acc)return i+1;}return w.length;}
 function maybeSpawn(now){
   const c=G.cfg;
-  if(now<G.nextErrAt||G.pos<1)return;
+  if(G.clean||now<G.nextErrAt||G.pos<1)return;
   if((G.totalBeats-G.pos)/G.rate<c.T+1.5)return;
-  if(G.errs.filter(e=>!e.done).length>=c.maxErr)return;
+  const active=G.errs.filter(e=>!e.done).length;
   const winB=G.pos+3*G.rate,cnt={};
   for(let i=G.idx;i<G.events.length&&G.events[i].b<winB;i++){const s=G.events[i].seat;cnt[s]=(cnt[s]||0)+1;}
-  const cands=G.seats.map((s,i)=>i).filter(i=>(cnt[i]||0)>=2&&!G.errs.some(e=>!e.done&&e.seat===i));
-  if(!cands.length){G.nextErrAt=now+1;return;}
-  const si=pick(cands),seatS=G.seats[si];
-  // 선율을 혼자 맡은 단원은 음을 빼먹으면 너무 티가 나므로 입장 미스 제외
-  const solo=seatS.role==='mel'&&G.seats.filter(x=>x.role==='mel').length===1;
-  const types=INST[seatS.inst].errs.filter(t=>t!=='mute'||(cnt[si]>=3&&!solo));
-  const type=pick(types),sd=G.barDyn[barIndexAt(G.pos)];
-  G.errs.push({seat:si,type,created:now,firstAt:null,deadline:null,done:false,
-    shift:(Math.random()<.5?-1:1)*c.cents,ci:G.diff==='hard'?1:0,
-    off:(Math.random()<.6?1:-1)*c.off,mul:sd<=.6?c.loud:c.soft});
-  G.spawned++;
-  G.nextErrAt=now+c.gap[0]+Math.random()*(c.gap[1]-c.gap[0]);
+  let cands=G.seats.map((s,i)=>i).filter(i=>(cnt[i]||0)>=2&&!G.errs.some(e=>!e.done&&e.seat===i));
+  const want=Math.min(pickN(c.group),c.maxErr-active,cands.length);
+  if(want<=0){G.nextErrAt=now+1;return;}
+  const sd=G.barDyn[barIndexAt(G.pos)];
+  for(let k=0;k<want;k++){
+    const si=pick(cands),seatS=G.seats[si];cands=cands.filter(x=>x!==si);
+    // 선율을 혼자 맡은 단원은 음을 빼먹으면 너무 티가 나므로 입장 미스 제외
+    const solo=seatS.role==='mel'&&G.seats.filter(x=>x.role==='mel').length===1;
+    const types=INST[seatS.inst].errs.filter(t=>t!=='mute'||(cnt[si]>=3&&!solo));
+    G.errs.push({seat:si,type:pick(types),created:now,firstAt:null,deadline:null,done:false,
+      shift:(Math.random()<.5?-1:1)*c.cents,ci:G.diff==='hard'?1:0,
+      off:(Math.random()<.6?1:-1)*c.off,mul:sd<=.6?c.loud:c.soft});
+    G.spawned++;
+  }
+  G.nextErrAt=now+Math.max(1.5,expGap(c.mean));
 }
 function updateErrors(now){
   G.errs.forEach(e=>{
@@ -946,7 +955,7 @@ function drawPattern(W,H,t){
    ========================================================= */
 function finish(){
   G.running=false;
-  const c=G.cfg,pen=G.nf*c.P,S=G.bonus-pen;
+  const c=G.cfg,cleanBonus=(G.spawned===0&&G.nf===0)?Math.round(200*c.k):0,pen=G.nf*c.P,S=G.bonus+cleanBonus-pen;
   const caught=G.caught.length,spawned=Math.max(G.spawned,caught);
   const g=(spawned?caught/spawned:1)-.1*G.nf;   // 등급: 적발률에서 오지적 1회당 0.1 감점
   const grade=g>=.9?'S':g>=.75?'A':g>=.6?'B':g>=.4?'C':'D';
@@ -960,7 +969,7 @@ function finish(){
     <div class="grade">${grade}</div>
     <div class="formula">S = ΣB<sub>i</sub> − n<sub>f</sub>·P</div>
     <table class="res">
-      <tr><td>ΣB<sub>i</sub> 적발 보너스</td><td>+${G.bonus}</td></tr>
+      <tr><td>ΣB<sub>i</sub> 적발 보너스</td><td>+${G.bonus}</td></tr>${cleanBonus?`<tr><td>실수 없는 연주를 끝까지 믿음</td><td>+${cleanBonus}</td></tr>`:''}
       <tr><td>n<sub>f</sub>·P 오지적 (${G.nf}회 × ${c.P})</td><td>−${pen}</td></tr>
       <tr class="tot"><td>S 총점 ${(Acc.user?cloudBest:isBest)?'· 최고 기록!':''}</td><td>${S}</td></tr>
     </table>
