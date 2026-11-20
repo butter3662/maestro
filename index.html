@@ -55,7 +55,7 @@ details ul{padding-left:18px;margin:6px 0}
 #meterFill{position:absolute;left:0;top:0;bottom:0;border-radius:4px;background:linear-gradient(90deg,#6c8bd8,#e7c27d,#ff7a6b)}
 #meterTarget{position:absolute;top:-4px;bottom:-4px;width:2px;background:#fff}
 #quitBtn{background:none;border:1px solid var(--line);border-radius:8px;padding:2px 8px;color:var(--dim);font-size:12px}
-#stage{position:relative;flex:1 1 58%;min-height:260px;overflow:hidden;background:linear-gradient(#0b0706 0 41%,#3a2213 41%,#5e3a1d 60%,#6a4222 100%);--dyn:.45}
+#stage{position:relative;flex:1 1 auto;min-height:260px;overflow:hidden;background:linear-gradient(#0b0706 0 41%,#3a2213 41%,#5e3a1d 60%,#6a4222 100%);--dyn:.45}
 /* 뒷벽: 나무 패널 + 몰딩 */
 .wall{position:absolute;left:0;right:0;top:0;height:42%;
   background:linear-gradient(rgba(0,0,0,.65),rgba(0,0,0,.15) 70%,rgba(0,0,0,.45)),
@@ -104,6 +104,9 @@ details ul{padding-left:18px;margin:6px 0}
 @keyframes pop{0%{opacity:0;margin-top:0}12%{opacity:1}100%{opacity:0;margin-top:-46px}}
 #count{position:absolute;inset:0;z-index:9;display:flex;align-items:center;justify-content:center;font-size:72px;font-weight:800;color:var(--gold);pointer-events:none;text-shadow:0 2px 12px #000}
 #warn{position:absolute;z-index:9;left:50%;top:8px;transform:translateX(-50%);background:rgba(0,0,0,.55);padding:4px 10px;border-radius:10px;font-size:12px;color:var(--warn);pointer-events:none}
+#foot{padding:10px 16px calc(12px + env(safe-area-inset-bottom));background:#0d0908;border-top:1px solid var(--line)}
+#progBar{height:6px;border-radius:3px;background:#2c211b;overflow:hidden}#prog{height:100%;width:0;background:linear-gradient(90deg,#c99a4f,#f0cf8e)}
+#footTxt{text-align:center;color:var(--dim);font-size:12px;margin-top:8px}
 #padWrap{position:relative;flex:1 1 30%;min-height:160px;border-top:7px solid #2a170c;box-shadow:inset 0 1px 0 #7a5530;background:radial-gradient(ellipse at 50% 0,#22170f,#0d0907 75%)}
 #pad{position:absolute;inset:0;width:100%;height:100%;touch-action:none}
 #padHint{position:absolute;left:0;right:0;top:8px;text-align:center;color:#8a7766;font-size:12px;pointer-events:none}
@@ -162,8 +165,8 @@ table.res td:last-child{text-align:right;font-variant-numeric:tabular-nums}
     <div class="card" id="acct"></div>
     <h2>소리</h2>
     <label class="card" style="display:flex;align-items:center;gap:12px"><input type="checkbox" id="spatial" style="width:22px;height:22px;accent-color:#c99a4f"><span><b>공간 음향(서라운드)</b><div class="meta">이어폰 전용. 지휘대에 선 위치에서 각 단원 소리가 앞·좌우·거리감 있게 들린다. 스피커로 들을 때는 끄는 게 낫다.</div></span></label>
-    <label class="card" style="display:flex;align-items:center;gap:12px;margin-top:10px"><input type="checkbox" id="tickOn" style="width:22px;height:22px;accent-color:#c99a4f"><span><b>지휘 박 소리</b><div class="meta">박을 저을 때마다 '딱' 소리가 나서 내가 친 박이 들린다. 1박은 조금 높은 소리.</div></span></label>
-    <div class="ver">Maestro v0.2.3</div>
+
+    <div class="ver">Maestro v0.3.0</div>
   </div>
   <nav id="tabbar"><button data-tab="songs" class="on"><i>🎼</i>곡</button><button data-tab="set"><i>⚙️</i>설정</button></nav>
 </section>
@@ -172,14 +175,12 @@ table.res td:last-child{text-align:right;font-variant-numeric:tabular-nums}
   <header id="hud">
     <div id="hudTitle">—</div>
     <div id="hudScore">S <b id="sTot">0</b></div>
-    <div class="row">
-      <span>템포 <span class="v" id="tCur">—</span> / 목표 <span class="v" id="tTgt">—</span></span>
-      <span id="dynBox"><span id="dynMark">p</span><span id="meter"><span id="meterFill"></span><span id="meterTarget"></span></span></span>
-    </div>
+    <div class="row"><span>적발 <span class="v ok" id="hCaught">0</span> · 놓침 <span class="v ng" id="hMissed">0</span> · 오지적 <span class="v" id="hNf">0</span></span></div>
     <div class="row" style="justify-content:flex-end"><span id="barNo">—</span><button id="quitBtn">그만</button></div>
   </header>
   <div id="stage"><div class="wall"><div class="pipes"></div></div><div class="floor"></div><div class="spot s1"></div><div class="spot s2"></div><div class="spot s3"></div><div class="curtain l"></div><div class="curtain r"></div><div class="valance"></div><div class="bulbs"></div><div id="count"></div><div id="warn" class="hidden">오케스트라가 지휘를 기다린다 — 박을 저어라</div></div>
-  <div id="padWrap"><canvas id="pad"></canvas><div id="padHint">지휘대 · 아래로 내려쳤다 튕겨 올리기</div><div id="beatNo"></div></div>
+  <div id="padWrap" class="hidden"><canvas id="pad"></canvas><div id="padHint"></div><div id="beatNo"></div></div>
+  <div id="foot"><div id="progBar"><div id="prog"></div></div><div id="footTxt">이상하게 연주하는 단원을 찾아 탭하라</div></div>
 </section>
 
 <div id="result" class="modal hidden"><div class="box" id="resBox"></div></div>
@@ -277,7 +278,7 @@ const FLOWERS={
   id:'flowers',title:'꽃의 왈츠',composer:'P. I. 차이콥스키',meterTxt:'3/4',beatSym:'♩',kw:'waltz flowers tchaikovsky 호두까기 왈츠',
   qPerBar:3,qPerBeat:1,countIn:3,key:2,style:'waltz',bassLo:40,fl:null,har:null,
   bars:rows([
-    ...withDyn(FA,'p').map((r,i)=>i===0?[r[0],r[1],'p',150]:r),
+    ...withDyn(FA,'p').map((r,i)=>i===0?[r[0],r[1],'p',180]:r),
     ...FB,
     ...withDyn(FA,'p'),['D5:3','D'],
     ...FC,
@@ -287,12 +288,12 @@ const FLOWERS={
 
 // --- 생상스: 죽음의 무도 (3/4, 한 마디 1박) ---
 const DT=[
-  ['Eb5:3','D7b9','f',168],['A4:3','D7b9'],['Eb5:2 Eb5:1','D7b9'],['A4:2 A4:1','D7b9'],
+  ['Eb5:3','D7b9','f',210],['A4:3','D7b9'],['Eb5:2 Eb5:1','D7b9'],['A4:2 A4:1','D7b9'],
   ["Eb5:.5' Eb5:.5' Eb5:1' A4:1'",'D7b9'],["Eb5:.5' Eb5:.5' Eb5:1' A4:1'",'D7b9'],
   ["Eb5:1' A4:1' Eb5:1'",'D7b9'],["A4:1' Eb5:1' D5:1'",'D7b9'],
 ];
 const DA=d=>[
-  ["G5:1' G4:.5' Bb4:.5' G4:.5' A4:.5'",'Gm',d,168],
+  ["G5:1' G4:.5' Bb4:.5' G4:.5' A4:.5'",'Gm',d,210],
   ["Bb4:1 A4:.5' Bb4:.5' G4:.5' Bb4:.5'",'Gm'],
   ["A4:.5 G4:.5 G4:.5' Bb4:.5' G4:.5' A4:.5'",'Gm'],
   ["Bb4:1 A4:.5' Bb4:.5' G4:.5' Bb4:.5'",'Gm'],
@@ -310,7 +311,7 @@ const DA=d=>[
   ["C6:1' Ab5:.5' C6:.5' Bb5:.5' Ab5:.5'",'Ab'],
 ];
 const DB=[
-  ["G5:1' r:1 D4:1",'Gm','f',150],
+  ["G5:1' r:1 D4:1",'Gm','f',186],
   ['G4:2 G4:1','Gm'],['F4:2 F4:1','Dm'],['E4:2 E4:1','C'],['Eb4:2 Eb4:1','Cm'],
   ['D4:1 E4:1 G4:1','C'],['F#4:1 E4:1 D4:1','D7'],['E4:2 E4:1','C'],['F#4:1 r:1 D4:1','D7'],
   ['G4:2 G4:1','Gm'],['F4:2 F4:1','Dm'],['E4:2 E4:1','C'],['Eb4:2 Eb4:1','Cm'],
@@ -319,7 +320,7 @@ const DB=[
 const MACABRE={
   id:'macabre',title:'죽음의 무도',composer:'C. 생상스',meterTxt:'3/4',beatSym:'♩',kw:'danse macabre saint-saens 생상스 죽음 할로윈',
   qPerBar:3,qPerBeat:1,countIn:3,key:7,style:'waltz',bassLo:40,fl:null,har:null,
-  bars:rows([...DT,...DA('p'),...DB,...DA('p'),["G5:1' r:2",'Gm','f',168]])
+  bars:rows([...DT,...DA('p'),...DB,...DA('p'),["G5:1' r:2",'Gm','f',210]])
 };
 const SONGS=[CANON,FLOWERS,MACABRE];
 
@@ -534,11 +535,9 @@ const DYN_NAMES=[['pp',.12],['p',.3],['mp',.45],['mf',.6],['f',.8],['ff',1]];
 const dynName=v=>DYN_NAMES.reduce((a,b)=>Math.abs(b[1]-v)<Math.abs(a[1]-v)?b:a)[0];
 
 let selSong=null,selDiff='easy';
-function bestKey(){return 'maestro-best';}
+function bestKey(){return 'maestro-best2';}
 function spatialOn(){return $('spatial').checked;}
-function tickOn(){return $('tickOn').checked;}
-try{$('tickOn').checked=localStorage.getItem('maestro-tick')!=='0';}catch(e){$('tickOn').checked=true;}
-$('tickOn').addEventListener('change',()=>{try{localStorage.setItem('maestro-tick',$('tickOn').checked?'1':'0');}catch(e){}});
+function tickOn(){return false;}
 try{$('spatial').checked=localStorage.getItem('maestro-spatial')!=='0';}catch(e){$('spatial').checked=true;}
 $('spatial').addEventListener('change',()=>{try{localStorage.setItem('maestro-spatial',$('spatial').checked?'1':'0');}catch(e){}});
 function loadBest(){try{return JSON.parse(localStorage.getItem(bestKey())||'{}');}catch(e){return {};}}
@@ -556,7 +555,7 @@ function renderMenu(){
     const diffs=open?`<div class="diffs">${Object.entries(DIFF).map(([k,d])=>{const b=best[s.id+'/'+k];
         return `<div class="dbtn ${k===selDiff?'sel':''}" data-diff="${k}"><b>${d.name}</b><small>${LAYOUT[k].length}명${b!=null?` · <span class="bs">최고 ${b}</span>`:''}</small></div>`;}).join('')}</div>
       <button class="go" data-go="1">지휘 시작</button>`:'';
-    return `<div class="card song ${open?'sel':''}" data-song="${s.id}"><b>${s.title}</b><div class="meta">${s.composer} · ${s.meterTxt} · 목표 ${s.beatSym}=${s.bars[0].tp}</div>${diffs}</div>`;
+    return `<div class="card song ${open?'sel':''}" data-song="${s.id}"><b>${s.title}</b><div class="meta">${s.composer} · ${s.meterTxt} · ${s.beatSym}=${s.bars[0].tp}</div>${diffs}</div>`;
   }).join('');
 }
 $('songCards').addEventListener('click',e=>{
@@ -601,8 +600,8 @@ function startGame(songId,diff){
     padPtr:null,trail:[],ripples:[],running:true
   });
   $('hudTitle').textContent=`${song.title} · ${G.cfg.name}`;
-  $('padHint').textContent=`${G.Q/G.qpb}/4박자 · 박마다 탭 · 위쪽을 누를수록 크게, 아래쪽일수록 작게`;
-  buildStage();resizePad();
+
+  buildStage();
   requestAnimationFrame(loop);
 }
 function barIndexAt(beat){return clamp(Math.floor(beat*G.qpb/G.Q),0,G.song.bars.length-1);}
@@ -779,8 +778,9 @@ function loop(){
   // 지휘가 늦어지면 그 앞에서 점점 느려져 멈추고, 다음 박이 들어오면 거기서 다시 따라간다.
   // 탭이 박이다: 오케스트라는 다음 탭이 올 때까지 다음 박에 들어가지 않는다(직전에서 기다림).
   // 첫 탭 전에는 준비 박만 치고 1박 직전에서 기다린다.
-  const allowF=G.lastIctusBeat!=null?G.lastIctusBeat+.97:-.01,hold=clamp((allowF-G.fB)/.06,0,1);
-  G.rate=G.baseRate*(1+G.corr)*hold;
+  // 자동 연주: 악보의 템포·셈여림 그대로
+  G.baseRate=G.song.bars[barIndexAt(Math.max(0,G.fB))].tp/60;G.rate=G.baseRate;
+  G.userLevel=G.barDyn[barIndexAt(Math.max(0,G.pos))];
   if(H>G.fT){
     const nB=G.fB+(H-G.fT)*G.rate,tAt=b=>G.fT+(b-G.fB)/G.rate;
     while(G.nextClick<0&&G.nextClick<nB){const t=tAt(G.nextClick);if(t>=now-.01)click(Math.max(t,now),G.nextClick===-G.song.countIn);G.nextClick++;}
@@ -861,22 +861,12 @@ pad.addEventListener('pointerdown',e=>{
    ========================================================= */
 function render(now){
   // HUD
-  const bi=barIndexAt(Math.max(0,G.pos)),tgt=G.song.bars[bi].tp,cur=Math.round(G.baseRate*60);
-  $('tTgt').textContent=`${G.song.beatSym}=${tgt}`;
-  const tc=$('tCur');tc.textContent=G.lastIctus==null?'—':cur;
-  tc.className='v '+(G.lastIctus==null?'':Math.abs(cur/tgt-1)<=.1?'ok':'ng');
-  const td=G.barDyn[bi];$('dynMark').textContent=dynName(td);
-  $('meterFill').style.width=`${G.userLevel*100}%`;$('meterTarget').style.left=`calc(${td*100}% - 1px)`;
-  const pen=G.nf*G.cfg.P;
-  $('sTot').textContent=G.scoreC+G.bonus-pen;
+  $('hCaught').textContent=G.caught.length;$('hMissed').textContent=G.missed;$('hNf').textContent=G.nf;
+  $('sTot').textContent=G.bonus-G.nf*G.cfg.P;
   const barNo=Math.floor(Math.max(0,G.pos)*G.qpb/G.Q)+1;
   $('barNo').textContent=G.pos<0?'준비':`마디 ${Math.min(barNo,G.song.bars.length)}/${G.song.bars.length}`;
-  // 큰 글씨: 준비 박은 아래 박 표시와 같은 번호(1·2·3·4)로, 다 세고 나면 '탭!'
   const bpbC=G.Q/G.qpb;
-  $('count').textContent=G.lastIctus!=null&&G.pos>=-.3?'':(G.fB<-.06?(((Math.floor(G.pos)%bpbC)+bpbC)%bpbC)+1:'탭!');
-  const waiting=G.lastIctus!=null&&G.pos>0&&(now-G.lastIctus)*G.baseRate>1.6;
-  $('warn').classList.toggle('hidden',!waiting);
-  $('beatNo').textContent='';
+  $('count').textContent=G.pos<0?(((Math.floor(G.pos)%bpbC)+bpbC)%bpbC)+1:'';
   // 좌석 빛
   G.seats.forEach((s,i)=>{
     s.on=s.on.filter(o=>o[1]>now-.05);
@@ -885,16 +875,7 @@ function render(now){
     if(G.cfg.hint){const e=G.errs.find(x=>!x.done&&x.seat===i&&x.firstAt!=null&&now>=x.firstAt);s.el.classList.toggle('wob',!!e);}
   });
   $('stage').style.setProperty('--dyn',G.userLevel.toFixed(2));
-  // 지휘 판
-  const W=G.padW,H=G.padH,t=performance.now();
-  pctx.clearRect(0,0,W,H);
-  drawTapPad(W,H,t);
-  G.trail=G.trail.filter(p=>t-p.t<650);
-  for(let i=1;i<G.trail.length;i++){const a=G.trail[i-1],b=G.trail[i],al=1-(t-b.t)/650;
-    pctx.strokeStyle=`rgba(231,194,125,${al})`;pctx.lineWidth=2+al*5;pctx.lineCap='round';pctx.beginPath();pctx.moveTo(a.x,a.y);pctx.lineTo(b.x,b.y);pctx.stroke();}
-  G.ripples=G.ripples.filter(r=>t-r.t<500);
-  G.ripples.forEach(r=>{const k=(t-r.t)/500;pctx.strokeStyle=r.ok?`rgba(127,217,154,${1-k})`:`rgba(255,190,90,${1-k})`;pctx.lineWidth=3;pctx.beginPath();pctx.arc(r.x,r.y,10+k*40,0,Math.PI*2);pctx.stroke();});
-  $('padHint').style.opacity=G.lastIctus==null?1:.45;
+  const pr=clamp(G.pos/G.totalBeats,0,1);$('prog').style.width=`${pr*100}%`;
 }
 // 탭 지휘대: 왼쪽 셈여림 눈금(목표·현재), 가운데 박 표시
 function drawTapPad(W,H,t){
@@ -959,9 +940,9 @@ function drawPattern(W,H,t){
    ========================================================= */
 function finish(){
   G.running=false;
-  const c=G.cfg,pen=G.nf*c.P,S=G.scoreC+G.bonus-pen,maxC=G.totalBeats*15;
+  const c=G.cfg,pen=G.nf*c.P,S=G.bonus-pen;
   const caught=G.caught.length,spawned=Math.max(G.spawned,caught);
-  const g=.6*(G.scoreC/maxC)+.4*(spawned?caught/spawned:1)-.04*G.nf;
+  const g=(spawned?caught/spawned:1)-.1*G.nf;   // 등급: 적발률에서 오지적 1회당 0.1 감점
   const grade=g>=.9?'S':g>=.75?'A':g>=.6?'B':g>=.4?'C':'D';
   const avgDt=caught?(G.caught.reduce((a,x)=>a+x.dt,0)/caught).toFixed(2):'—';
   const best=loadBest(),key=G.song.id+'/'+G.diff,isBest=best[key]==null||S>best[key];
@@ -971,21 +952,19 @@ function finish(){
   $('resBox').innerHTML=`
     <div style="text-align:center;color:var(--dim);font-size:13px">${G.song.title} · ${c.name}</div>
     <div class="grade">${grade}</div>
-    <div class="formula">S = S<sub>c</sub> + ΣB<sub>i</sub> − n<sub>f</sub>·P</div>
+    <div class="formula">S = ΣB<sub>i</sub> − n<sub>f</sub>·P</div>
     <table class="res">
-      <tr><td>S<sub>c</sub> 지휘 점수 (만점 ${maxC})</td><td>${G.scoreC}</td></tr>
       <tr><td>ΣB<sub>i</sub> 적발 보너스</td><td>+${G.bonus}</td></tr>
       <tr><td>n<sub>f</sub>·P 오지적 (${G.nf}회 × ${c.P})</td><td>−${pen}</td></tr>
       <tr class="tot"><td>S 총점 ${(Acc.user?cloudBest:isBest)?'· 최고 기록!':''}</td><td>${S}</td></tr>
     </table>
-    <p class="note">적발 ${caught}/${spawned} (${byType}) · 놓침 ${G.missed} · 평균 적발 시간 Δt ${avgDt}초<br>
-    지휘한 박 ${G.patOk}/${G.totalBeats}</p>
+    <p class="note">적발 ${caught}/${spawned} (${byType}) · 놓침 ${G.missed} · 평균 적발 시간 Δt ${avgDt}초</p>
     <p class="note" id="cloudNote">${Acc.user?'기록 저장 중…':(Acc.sb?'로그인하면 기록이 계정에 저장된다.':'')}</p>
     <div class="btns"><button id="rMenu">메뉴</button><button class="pri" id="rAgain">다시 하기</button></div>`;
   $('result').classList.remove('hidden');
   $('rMenu').onclick=showMenu;
   $('rAgain').onclick=()=>{ctx.resume().then(()=>startGame(G.song.id,G.diff));};
-  if(Acc.user)submitRecord(G.song.id,G.diff,S,grade,{sc:G.scoreC,bonus:G.bonus,nf:G.nf,caught,spawned,missed:G.missed}).then(b=>{
+  if(Acc.user)submitRecord(G.song.id,G.diff,S,grade,{bonus:G.bonus,nf:G.nf,caught,spawned,missed:G.missed}).then(b=>{
     const n=$('cloudNote');if(n)n.textContent=b!=null?`계정에 저장됨 · 이 곡·난이도 최고 ${b}`:'계정 저장 실패 — 이 기기에는 저장됨';
   });
 }
