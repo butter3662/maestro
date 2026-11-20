@@ -172,7 +172,7 @@ table.res td:last-child{text-align:right;font-variant-numeric:tabular-nums}
 
     <h2>정보</h2>
     <div class="card"><div class="meta" style="line-height:1.6">일반 곡의 선율은 flutetunes.com 공개 플루트 악보로 음을 확인했고 반주는 게임용으로 편곡했다.<br>보스곡(쇼팽 에튀드 3곡, 월광 3악장)과 할렐루야·G선상의 아리아·첼로 모음곡 전주곡은 Mutopia Project의 악보 소스를 읽어 원곡 음을 그대로 썼다. 월광 소나타 3악장 악보: Chris Sawer, Stewart Holmes 조판, CC BY-SA 2.5. 쇼팽 에튀드 악보: Roland Goretzki 조판, 퍼블릭 도메인. 라 캄파넬라: pianoclassics.net의 퍼블릭 도메인 악보(MuseScore 조판)에서 음을 읽어 앞부분 20마디를 썼다. G선상의 아리아 악보: jeff covey 조판, CC BY-SA 3.0. 할렐루야 악보: Joshua Koo 조판, 첼로 모음곡 1번 전주곡 악보: Andreas Scherer 조판, 퍼블릭 도메인.</div></div>
-    <div class="ver">Maestro v0.4.6</div>
+    <div class="ver">Maestro v0.4.7</div>
   </div>
   <nav id="tabbar"><button data-tab="songs" class="on"><i>🎼</i>곡</button><button data-tab="set"><i>⚙️</i>설정</button></nav>
 </section>
@@ -905,7 +905,9 @@ function accuse(si){
   const e=G.errs.find(x=>!x.done&&x.seat===si&&x.firstAt!=null&&now>=x.firstAt-.05);
   if(e){
     e.done=true;const dt=Math.max(0,now-e.firstAt);
-    const B=Math.max(10,Math.round(B0[e.type]*G.cfg.k*Math.pow(Math.max(0,1-dt/G.cfg.T),2)));   // 빨리 잡을수록 크게: (1−Δt/T)²
+    // 빨리 잡을수록 크게. 사람 반응 시간을 감안해 Δt ≤ 0.2초면 만점,
+    // 그 뒤로는 B = B₀·k·(1 − (Δt−0.2)/(T−0.2))² 로 줄어든다 (T: 적발 제한 시간)
+    const R0=.2,B=Math.max(10,Math.round(B0[e.type]*G.cfg.k*Math.pow(Math.max(0,1-Math.max(0,dt-R0)/(G.cfg.T-R0)),2)));
     G.bonus+=B;G.caught.push({type:e.type,B,dt});
     flashSeat(si,'hit');popup(si,`+${B} ${TYPE_KO[e.type]} 미스 · ${dt.toFixed(1)}초`,'good');
   }else{
