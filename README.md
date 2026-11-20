@@ -15,4 +15,7 @@
 - 일반 곡 선율: flutetunes.com 공개 플루트 악보로 음을 확인, 반주·화성은 게임용 편곡.
 - 보스곡: [Mutopia Project](https://www.mutopiaproject.org) LilyPond 소스의 음을 파서로 읽어 사용.
   - 쇼팽 에튀드 Op.10 No.1·5·12 — Roland Goretzki 조판, 퍼블릭 도메인
+  - 헨델 「메시아」 할렐루야 — Joshua Koo 조판, 퍼블릭 도메인
+  - 바흐 관현악 모음곡 3번 Air(G선상의 아리아) — jeff covey 조판, CC BY-SA 3.0
+  - 바흐 무반주 첼로 모음곡 1번 전주곡 — Andreas Scherer 조판, 퍼블릭 도메인
   - 베토벤 월광 소나타 3악장 — Chris Sawer, Stewart Holmes 조판, CC BY-SA 2.5 (이 곡 데이터는 같은 조건으로 배포)
