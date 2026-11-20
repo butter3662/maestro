@@ -166,7 +166,7 @@ table.res td:last-child{text-align:right;font-variant-numeric:tabular-nums}
     <h2>소리</h2>
     <label class="card" style="display:flex;align-items:center;gap:12px"><input type="checkbox" id="spatial" style="width:22px;height:22px;accent-color:#c99a4f"><span><b>공간 음향(서라운드)</b><div class="meta">이어폰 전용. 지휘대에 선 위치에서 각 단원 소리가 앞·좌우·거리감 있게 들린다. 스피커로 들을 때는 끄는 게 낫다.</div></span></label>
 
-    <div class="ver">Maestro v0.3.0</div>
+    <div class="ver">Maestro v0.3.1</div>
   </div>
   <nav id="tabbar"><button data-tab="songs" class="on"><i>🎼</i>곡</button><button data-tab="set"><i>⚙️</i>설정</button></nav>
 </section>
@@ -349,13 +349,13 @@ const LAYOUT={
           ['timp','timp',.48,2,-.25],['perc','perc',.82,2,.25]]
 };
 const DIFF={
-  // cents: 음정 어긋남(센트, 100센트 = 반음), off: 박자 어긋남(초), loud/soft: 셈여림 배율, skip: 입장 미스 때 빠뜨리는 음 비율
-  easy  :{name:'쉬움',T:7,P:60,k:1.0,maxErr:1,gap:[5,9],cents:45,off:.075,loud:1.7,soft:.55,skip:.6,hint:false,
-          info:'바이올린·첼로·피아노 3명. 힌트 없이 소리로만 찾는다. 음정은 45센트(반음의 절반 정도) 어긋난다.'},
-  normal:{name:'보통',T:6,P:80,k:1.3,maxErr:1,gap:[4,8],cents:30,off:.055,loud:1.5,soft:.62,skip:.5,hint:false,
-          info:'+ 플루트·트럼펫 5명. 음정은 30센트, 박자는 약 0.05초 어긋난다.'},
-  hard  :{name:'어려움',T:5,P:100,k:1.6,maxErr:2,gap:[3,6],cents:20,off:.04,loud:1.35,soft:.7,skip:.45,hint:false,
-          info:'풀 편성 11명(제1바이올린 3명 포함). 실수가 동시에 2개까지 난다. 음정 20센트, 박자 0.04초 정도로 아주 미세하고, 피아노는 화음 속 한 음만 어긋난다.'},
+  // cents: 음정 어긋남(센트, 100센트 = 반음), off: 박자 어긋남(박 단위: 0.5 = 반 박), loud/soft: 셈여림 배율, skip: 입장 미스 때 빠뜨리는 음 비율
+  easy  :{name:'쉬움',T:7,P:60,k:1.0,maxErr:1,gap:[5,9],cents:100,off:.5,loud:1.7,soft:.55,skip:.6,hint:false,
+          info:'바이올린·첼로·피아노 3명. 음정 반음, 박자 반 박 어긋난다.'},
+  normal:{name:'보통',T:6,P:80,k:1.3,maxErr:1,gap:[4,8],cents:50,off:.25,loud:1.5,soft:.62,skip:.5,hint:false,
+          info:'+ 플루트·트럼펫 5명. 음정 반의 반음(50센트), 박자 반의 반 박 어긋난다.'},
+  hard  :{name:'어려움',T:5,P:100,k:1.6,maxErr:2,gap:[3,6],cents:25,off:.125,loud:1.35,soft:.7,skip:.45,hint:false,
+          info:'풀 편성 11명. 실수가 동시에 2개까지 난다. 음정 반의 반의 반음(25센트), 박자 반의 반의 반 박 어긋난다.'},
 };
 const B0={dyn:100,mute:120,timing:150,pitch:180};
 const TYPE_KO={pitch:'음정',timing:'박자',dyn:'셈여림',mute:'입장'};
@@ -645,7 +645,7 @@ function scheduleEv(ev,t,now){
   if(err){
     let applied=true;
     if(err.type==='pitch'){if(ev.m<0||(ev.ci!==undefined&&ev.ci!==err.ci))applied=false;else m=ev.m+err.shift/100;}
-    else if(err.type==='timing'){tt=(err.off<0&&tt+err.off<now+.01)?tt-err.off:tt+err.off;}
+    else if(err.type==='timing'){const o=err.off/G.rate;tt=Math.max(now,tt+o);}   // off: 박 단위(+ 늦게, − 일찍)
     else if(err.type==='dyn'){v=ev.v*err.mul;}
     if(applied){
       if(err.firstAt==null){err.firstAt=tt;err.deadline=tt+G.cfg.T;}
@@ -694,9 +694,9 @@ function accuse(si){
   const e=G.errs.find(x=>!x.done&&x.seat===si&&x.firstAt!=null&&now>=x.firstAt-.05);
   if(e){
     e.done=true;const dt=Math.max(0,now-e.firstAt);
-    const B=Math.max(10,Math.round(B0[e.type]*G.cfg.k*(1-dt/G.cfg.T)));
+    const B=Math.max(10,Math.round(B0[e.type]*G.cfg.k*Math.pow(Math.max(0,1-dt/G.cfg.T),2)));   // 빨리 잡을수록 크게: (1−Δt/T)²
     G.bonus+=B;G.caught.push({type:e.type,B,dt});
-    flashSeat(si,'hit');popup(si,`+${B} ${TYPE_KO[e.type]} 미스 적발!`,'good');
+    flashSeat(si,'hit');popup(si,`+${B} ${TYPE_KO[e.type]} 미스 · ${dt.toFixed(1)}초`,'good');
   }else{
     G.nf++;flashSeat(si,'miss');popup(si,`−${G.cfg.P} 오지적`,'bad');
   }
@@ -784,7 +784,13 @@ function loop(){
   if(H>G.fT){
     const nB=G.fB+(H-G.fT)*G.rate,tAt=b=>G.fT+(b-G.fB)/G.rate;
     while(G.nextClick<0&&G.nextClick<nB){const t=tAt(G.nextClick);if(t>=now-.01)click(Math.max(t,now),G.nextClick===-G.song.countIn);G.nextClick++;}
-    while(G.idx<G.events.length&&G.events[G.idx].b<nB){const ev=G.events[G.idx++];scheduleEv(ev,tAt(ev.b),now);}
+    while(G.idx<G.events.length&&G.events[G.idx].b<nB){const ev=G.events[G.idx++];if(!ev.sent){ev.sent=true;scheduleEv(ev,tAt(ev.b),now);}}
+    // 일찍 들어가는 박자 미스: 그 단원의 음을 |off|박 먼저 미리 예약한다
+    G.errs.forEach(e=>{
+      if(e.done||e.type!=='timing'||e.off>=0)return;
+      const ahead=nB-e.off;
+      for(let i=G.idx;i<G.events.length&&G.events[i].b<ahead;i++){const ev=G.events[i];if(ev.seat===e.seat&&!ev.sent){ev.sent=true;scheduleEv(ev,tAt(ev.b),now);}}
+    });
     G.fB=nB;G.fT=H;G.hist.push([H,nB]);if(G.hist.length>60)G.hist.shift();
   }
   G.pos=posAt(now);
