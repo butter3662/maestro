@@ -135,6 +135,10 @@ table.res td:last-child{text-align:right;font-variant-numeric:tabular-nums}
 .bossTag{float:right;font-size:12px;color:#ff9c8a;font-weight:700}
 .song .diffs{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:12px}
 .song .dbtn b{font-size:14px;word-break:keep-all}
+.song .optLab{color:var(--dim);font-size:12px;margin-top:12px}
+.song .optLab+.diffs{margin-top:6px}
+.song .dinfo{color:var(--dim);font-size:12px;margin-top:10px;line-height:1.5}
+.song .dinfo .bs{color:var(--gold2)}
 .song .dbtn{background:#1a1310;border:1px solid var(--line);border-radius:12px;padding:10px 4px;text-align:center}
 .song .dbtn.sel{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold) inset;background:#2a1f18}
 .song .dbtn small{display:block;color:var(--dim);font-size:12px;margin-top:2px}
@@ -172,7 +176,7 @@ table.res td:last-child{text-align:right;font-variant-numeric:tabular-nums}
 
     <h2>정보</h2>
     <div class="card"><div class="meta" style="line-height:1.6">일반 곡의 선율은 flutetunes.com 공개 플루트 악보로 음을 확인했고 반주는 게임용으로 편곡했다.<br>보스곡(쇼팽 에튀드 3곡, 월광 3악장)과 할렐루야·G선상의 아리아·첼로 모음곡 전주곡은 Mutopia Project의 악보 소스를 읽어 원곡 음을 그대로 썼다. 월광 소나타 3악장 악보: Chris Sawer, Stewart Holmes 조판, CC BY-SA 2.5. 쇼팽 에튀드 악보: Roland Goretzki 조판, 퍼블릭 도메인. 라 캄파넬라: pianoclassics.net의 퍼블릭 도메인 악보(MuseScore 조판)에서 음을 읽어 앞부분 20마디를 썼다. 운명·비창 3악장·자장가·강아지 왈츠·즉흥환상곡·송어·작은 별 변주곡·달빛: Mutopia Project 퍼블릭 도메인 악보. 카프리스 24번: Samuel Rummel 조판, CC BY-SA 4.0. 결혼 행진곡: Alexander Brock 조판, CC BY-SA 4.0. 카르멘 전주곡: Alex O'S 조판, CC BY-SA 2.5. 왕벌의 비행·세레나데(리스트 편곡)·하바네라: pianoclassics.net 퍼블릭 도메인 악보. 겨울바람: Knute Snortum 조판, CC BY-SA 4.0. 사탕요정의 춤: neonscribe/lilypond-lead-sheets 리드시트(퍼블릭 도메인 헌정)의 선율·화음으로 반주를 만들었다. G선상의 아리아 악보: jeff covey 조판, CC BY-SA 3.0. 할렐루야 악보: Joshua Koo 조판, 첼로 모음곡 1번 전주곡 악보: Andreas Scherer 조판, 퍼블릭 도메인.</div></div>
-    <div class="ver">Maestro v0.5.1</div>
+    <div class="ver">Maestro v0.5.2</div>
   </div>
   <nav id="tabbar"><button data-tab="songs" class="on"><i>🎼</i>곡</button><button data-tab="set"><i>⚙️</i>설정</button></nav>
 </section>
@@ -466,25 +470,25 @@ const INST={
 };
 // [악기, 역할, 좌우 위치(-1~1), 줄(0=앞,1=뒤)]
 const LAYOUT={
-  easy  :[['violin','mel',-.5,0],['cello','bass',.5,0],['piano','pno',0,1]],
-  normal:[['violin','mel',-.6,0],['cello','bass',.6,0],['piano','pno',-.55,1],['flute','fl',0,1],['trumpet','tpt',.55,1]],
-  hard  :[['violin','mel',-.6,0],['violin2','har',0,0],['cello','bass',.6,0],
+  3 :[['violin','mel',-.5,0],['cello','bass',.5,0],['piano','pno',0,1]],
+  5 :[['violin','mel',-.6,0],['cello','bass',.6,0],['piano','pno',-.55,1],['flute','fl',0,1],['trumpet','tpt',.55,1]],
+  7 :[['violin','mel',-.6,0],['violin2','har',0,0],['cello','bass',.6,0],
           ['piano','pno',-.78,1],['flute','fl',-.26,1],['trumpet','tpt',.26,1],['cb','cb',.78,1]],
   // 매우 어려움: [악기, 역할, 소리 좌우, 줄(0 앞·1 중간·2 뒤), 화면 x]
-  expert:[['violin','mel',-.82,0,-.76],['violin','mel',-.58,0,-.38],['violin','mel',-.34,0,0],['violin2','har',-.1,0,.38],['cello','bass',.3,0,.76],
+  11:[['violin','mel',-.82,0,-.76],['violin','mel',-.58,0,-.38],['violin','mel',-.34,0,0],['violin2','har',-.1,0,.38],['cello','bass',.3,0,.76],
           ['cb','cb',.62,1,.66],['piano','pno',-.72,1,-.66],['flute','fl',-.28,1,-.22],['trumpet','tpt',.12,1,.22],
           ['timp','timp',.48,2,-.25],['perc','perc',.82,2,.25]]
 };
 const DIFF={
   // cents: 음정 어긋남(센트, 100센트 = 반음), off: 박자 어긋남(박 단위: 0.5 = 반 박), loud/soft: 셈여림 배율, skip: 입장 미스 때 빠뜨리는 음 비율
   easy  :{name:'쉬움',T:7,P:60,k:1.0,maxErr:2,mean:9,group:[.8,.2],cents:100,off:.5,loud:1.7,soft:.55,skip:.6,hint:false,
-          info:'바이올린·첼로·피아노 3명. 음정 반음, 박자 반 박 어긋난다.'},
+          info:'음정 반음(100센트), 박자 반 박 어긋난다.'},
   normal:{name:'보통',T:6,P:80,k:1.3,maxErr:3,mean:8,group:[.65,.27,.08],cents:50,off:.25,loud:1.5,soft:.62,skip:.5,hint:false,
-          info:'+ 플루트·트럼펫 5명. 음정 반의 반음(50센트), 박자 반의 반 박 어긋난다.'},
+          info:'음정 반의 반음(50센트), 박자 반의 반 박 어긋난다.'},
   hard  :{name:'어려움',T:5,P:100,k:1.6,maxErr:3,mean:7,group:[.55,.3,.15],cents:25,off:.125,loud:1.35,soft:.7,skip:.45,hint:false,
-          info:'+ 제2바이올린·콘트라베이스 7명. 음정 반의 반의 반음(25센트), 박자 반의 반의 반 박 어긋난다.'},
+          info:'음정 25센트, 박자 1/8박 어긋난다.'},
   expert:{name:'매우 어려움',T:4.5,P:120,k:2.0,maxErr:4,mean:6.5,group:[.5,.3,.14,.06],cents:25,off:.125,loud:1.35,soft:.7,skip:.45,hint:false,
-          info:'풀 편성 11명. 한 번에 최대 4명까지 틀린다. 음정 25센트, 박자 반의 반의 반 박 어긋난다.'},
+          info:'음정 25센트, 박자 1/8박. 실수가 잦고 여러 명이 한꺼번에 틀리는 일이 많다.'},
 };
 const B0={dyn:100,mute:120,timing:150,pitch:180};
 const TYPE_KO={pitch:'음정',timing:'박자',dyn:'셈여림',mute:'입장'};
@@ -494,7 +498,7 @@ const TYPE_KO={pitch:'음정',timing:'박자',dyn:'셈여림',mute:'입장'};
    ========================================================= */
 // 보스곡: 오른손·왼손 원곡 음을 단원들에게 나눠 준다
 // 파트보 곡: map[역할] = [[파트, 옮김(반음), 옵션]] — 옵션 beat: 박 첫 음만, low: 박마다 가장 낮은 음
-function compileMapped(song,diff,dec,Q,qb,endQ){
+function compileMapped(song,size,dec,Q,qb,endQ){
   const P={};for(const k in song.parts)P[k]=dec(song.parts[k]);
   const endCh=(P.end||[]).slice().sort((a,b)=>a.m-b.m);
   const onBeat=n=>Math.abs(n.q/qb-Math.round(n.q/qb))<1e-6;
@@ -511,16 +515,16 @@ function compileMapped(song,diff,dec,Q,qb,endQ){
   for(let bi=0;bi<song.bars.length;bi++){const q0=bi*Q;if(DYN[song.bars[bi].d]<.79)continue;
     lines.perc.push({q:q0,d:1,m:-1,v:.6});if(bi%8===0||bi===song.bars.length-1)lines.perc.push({q:q0,d:2,m:-2,v:.5});}
   const letters='ABCDEFGHIJK';
-  const seats=LAYOUT[diff].map((s,i)=>({inst:s[0],role:s[1],pan:s[2],row:s[3],label:letters[i],cents:(i%3-1)*4,vx:s[4]!=null?s[4]:s[2]}));
+  const seats=LAYOUT[size].map((s,i)=>({inst:s[0],role:s[1],pan:s[2],row:s[3],label:letters[i],cents:(i%3-1)*4,vx:s[4]!=null?s[4]:s[2]}));
   const events=[];
   seats.forEach((s,si)=>lines[s.role].forEach(n=>{if(n.q>endQ+1e-9)return;events.push({seat:si,b:n.q/qb,dp:Math.min(n.d*.95,endQ+Q-n.q)/qb,m:n.m,v:n.v});}));
   events.sort((a,b)=>a.b-b.b||a.seat-b.seat);
   return {seats,events,totalBeats:endQ/qb,barDyn:song.bars.map(b=>DYN[b.d])};
 }
-function compileParts(song,diff){
+function compileParts(song,size){
   const dec=a=>{const r=[];for(let i=0;i<a.length;i+=3)r.push({q:a[i]/96,d:a[i+1]/96,m:a[i+2]});return r;};
   const Q=song.qPerBar,qb=song.qPerBeat,endQ=song.bars.length*Q;
-  if(song.map)return compileMapped(song,diff,dec,Q,qb,endQ);
+  if(song.map)return compileMapped(song,size,dec,Q,qb,endQ);
   const rh=dec(song.parts.rh),lh=dec(song.parts.lh);
   const groups=arr=>{const g=new Map();arr.forEach(n=>{const k=Math.round(n.q*96);if(!g.has(k))g.set(k,[]);g.get(k).push(n);});return [...g.values()];};
   const top=groups(rh).map(g=>g.reduce((a,b)=>b.m>a.m?b:a));
@@ -550,14 +554,14 @@ function compileParts(song,diff){
     if(bi%8===0||bi===song.bars.length-1)lines.perc.push({q:q0,d:2,m:-2,v:.55});
   }
   const letters='ABCDEFGHIJK';
-  const seats=LAYOUT[diff].map((s,i)=>({inst:s[0],role:s[1],pan:s[2],row:s[3],label:letters[i],cents:(i%3-1)*4,vx:s[4]!=null?s[4]:s[2]}));
+  const seats=LAYOUT[size].map((s,i)=>({inst:s[0],role:s[1],pan:s[2],row:s[3],label:letters[i],cents:(i%3-1)*4,vx:s[4]!=null?s[4]:s[2]}));
   const events=[];
   seats.forEach((s,si)=>lines[s.role].forEach(n=>{if(n.q>=endQ)return;events.push({seat:si,b:n.q/qb,dp:Math.min(n.d*.95,endQ-n.q)/qb,m:n.m,v:n.v});}));
   events.sort((a,b)=>a.b-b.b||a.seat-b.seat);
   return {seats,events,totalBeats:endQ/qb,barDyn:song.bars.map(b=>DYN[b.d])};
 }
-function compile(song,diff){
-  if(song.parts)return compileParts(song,diff);
+function compile(song,size){
+  if(song.parts)return compileParts(song,size);
   const bars=song.bars,Q=song.qPerBar,endQ=bars.length*Q;
   // 선율(붙임줄 처리)
   const mel=[];let q=0,pend=null;
@@ -638,7 +642,7 @@ function compile(song,diff){
   });
   // 좌석 & 이벤트
   const letters='ABCDEFGHIJK';
-  const seats=LAYOUT[diff].map((s,i)=>({inst:s[0],role:s[1],pan:s[2],row:s[3],label:letters[i],cents:(i%3-1)*4,vx:s[4]!=null?s[4]:s[2]}));
+  const seats=LAYOUT[size].map((s,i)=>({inst:s[0],role:s[1],pan:s[2],row:s[3],label:letters[i],cents:(i%3-1)*4,vx:s[4]!=null?s[4]:s[2]}));
   const qpb=song.qPerBeat,events=[];
   seats.forEach((s,si)=>lines[s.role].forEach(n=>{
     const dPlay=n.st?Math.min(n.d*.55,.3):n.d*.95;
@@ -748,7 +752,9 @@ const clamp=(x,a,b)=>Math.min(b,Math.max(a,x));
 const DYN_NAMES=[['pp',.12],['p',.3],['mp',.45],['mf',.6],['f',.8],['ff',1]];
 const dynName=v=>DYN_NAMES.reduce((a,b)=>Math.abs(b[1]-v)<Math.abs(a[1]-v)?b:a)[0];
 
-let selSong=null,selDiff='easy';
+let selSong=null,selDiff='easy',selSize=3;
+const SIZES=[3,5,7,11];
+const recKey=(diff,size)=>diff+'-'+size;
 function bestKey(){return 'maestro-best2';}
 function spatialOn(){return $('spatial').checked;}
 function tickOn(){return false;}
@@ -756,6 +762,8 @@ try{$('spatial').checked=localStorage.getItem('maestro-spatial')!=='0';}catch(e)
 $('spatial').addEventListener('change',()=>{try{localStorage.setItem('maestro-spatial',$('spatial').checked?'1':'0');}catch(e){}});
 (function(){try{if(localStorage.getItem('maestro-diff4'))return;const k='maestro-best2',o=JSON.parse(localStorage.getItem(k)||'{}'),n={};
   for(const key in o){n[key.endsWith('/hard')?key.slice(0,-5)+'/expert':key]=o[key];}localStorage.setItem(k,JSON.stringify(n));localStorage.setItem('maestro-diff4','1');}catch(e){}})();
+(function(){try{if(localStorage.getItem('maestro-diff5'))return;const k='maestro-best2',o=JSON.parse(localStorage.getItem(k)||'{}'),n={},M={easy:'easy-3',normal:'normal-5',hard:'hard-7',expert:'expert-11'};
+  for(const key in o){const i=key.lastIndexOf('/'),d=key.slice(i+1);n[M[d]?key.slice(0,i+1)+M[d]:key]=o[key];}localStorage.setItem(k,JSON.stringify(n));localStorage.setItem('maestro-diff5','1');}catch(e){}})();
 function loadBest(){try{return JSON.parse(localStorage.getItem(bestKey())||'{}');}catch(e){return {};}}
 function saveBest(o){try{localStorage.setItem(bestKey(),JSON.stringify(o));}catch(e){}}
 
@@ -768,14 +776,17 @@ function renderMenu(){
   $('noRes').classList.toggle('hidden',list.length>0);
   $('songCards').innerHTML=list.map(s=>{
     const open=s.id===selSong;
-    const diffs=open?`<div class="diffs">${Object.entries(DIFF).map(([k,d])=>{const b=best[s.id+'/'+k];
-        return `<div class="dbtn ${k===selDiff?'sel':''}" data-diff="${k}"><b>${d.name}</b><small>${LAYOUT[k].length}명${b!=null?` · <span class="bs">최고 ${b}</span>`:''}</small></div>`;}).join('')}</div>
+    const b=best[s.id+'/'+recKey(selDiff,selSize)];
+    const diffs=open?`<div class="optLab">인원</div><div class="diffs">${SIZES.map(n=>`<div class="dbtn ${n===selSize?'sel':''}" data-size="${n}"><b>${n}명</b></div>`).join('')}</div>
+      <div class="optLab">난이도</div><div class="diffs">${Object.entries(DIFF).map(([k,d])=>`<div class="dbtn ${k===selDiff?'sel':''}" data-diff="${k}"><b>${d.name}</b></div>`).join('')}</div>
+      <div class="dinfo">${DIFF[selDiff].info}${b!=null?` · <span class="bs">최고 ${b}</span>`:''}</div>
       <button class="go" data-go="1">연주 시작</button>`:'';
     return `<div class="card song ${open?'sel':''} ${s.boss?'boss':''}" data-song="${s.id}">${s.boss?'<span class="bossTag">👑 보스</span>':''}<b>${s.title}</b><div class="meta">${s.composer} · ${s.meterTxt} · ${s.beatSym}=${s.bars[0].tp}</div>${diffs}</div>`;
   }).join('');
 }
 $('songCards').addEventListener('click',e=>{
-  if(e.target.closest('[data-go]')){initAudio();ctx.resume().then(()=>startGame(selSong,selDiff));return;}
+  if(e.target.closest('[data-go]')){initAudio();ctx.resume().then(()=>startGame(selSong,selSize,selDiff));return;}
+  const z=e.target.closest('[data-size]');if(z){selSize=+z.dataset.size;renderMenu();return;}
   const d=e.target.closest('[data-diff]');if(d){selDiff=d.dataset.diff;renderMenu();return;}
   const c=e.target.closest('[data-song]');if(c){selSong=selSong===c.dataset.song?null:c.dataset.song;renderMenu();}
 });
@@ -789,8 +800,8 @@ $('quitBtn').addEventListener('click',()=>{G.running=false;showMenu();});
 
 function showMenu(){$('game').classList.add('hidden');$('result').classList.add('hidden');$('menu').classList.remove('hidden');renderMenu();}
 
-function startGame(songId,diff){
-  const song=SONGS.find(s=>s.id===songId),C=compile(song,diff);
+function startGame(songId,size,diff){
+  const song=SONGS.find(s=>s.id===songId),C=compile(song,size);
   $('menu').classList.add('hidden');$('result').classList.add('hidden');$('game').classList.remove('hidden');
   // 좌석 오디오 체인
   C.seats.forEach(s=>{
@@ -807,7 +818,7 @@ function startGame(songId,diff){
     s.on=[];
   });
   Object.assign(G,{
-    song,diff,cfg:DIFF[diff],seats:C.seats,events:C.events,totalBeats:C.totalBeats,barDyn:C.barDyn,
+    song,diff,size,rec:recKey(diff,size),cfg:DIFF[diff],seats:C.seats,events:C.events,totalBeats:C.totalBeats,barDyn:C.barDyn,
     Q:song.qPerBar,qpb:song.qPerBeat,idx:0,
     baseRate:song.bars[0].tp/60,rate:song.bars[0].tp/60,
     pos:-song.countIn-.3,fB:-song.countIn-.3,fT:ctx.currentTime+.05,hist:[[ctx.currentTime+.05,-song.countIn-.3]],corr:0,corrUntil:null,nextClick:-song.countIn,
@@ -815,7 +826,7 @@ function startGame(songId,diff){
     scoreC:0,bonus:0,evaluated:-1,beatHits:0,ictus:new Map(),ivs:[],patOk:0,patBad:0,b1:null,lastPt:null,judge:null,sk:null,userLevel:.45,lastIctus:null,lastIctusBeat:null,
     padPtr:null,trail:[],ripples:[],running:true
   });
-  $('hudTitle').textContent=`${song.title} · ${G.cfg.name}`;
+  $('hudTitle').textContent=`${song.title} · ${G.size}명 · ${G.cfg.name}`;
 
   buildStage();
   requestAnimationFrame(loop);
@@ -843,7 +854,7 @@ function musicianSVG(i){
 }
 function buildStage(){
   const st=$('stage');st.querySelectorAll('.seat,.pop').forEach(n=>n.remove());
-  const three=G.diff==='expert';
+  const three=G.size===11;
   const TOP=three?['84%','62%','44%']:['80%','52%'],SC=three?[.86,.74,.64]:[1.08,.9];
   G.seats.forEach((s,i)=>{
     const d=document.createElement('div');d.className='seat';
@@ -871,7 +882,7 @@ function scheduleEv(ev,t,now){
   const sd=G.barDyn[barIndexAt(ev.b)];
   const lvl=.5*sd+.5*G.userLevel,gain=.3+.85*lvl;
   const dur=Math.min(ev.dp/Math.max(G.rate,G.baseRate*.5),3);
-  const jit=(G.diff==='expert'&&seat.inst==='violin')?(Math.random()-.5)*.016:0;
+  const jit=(G.size===11&&seat.inst==='violin')?(Math.random()-.5)*.016:0;
   const at=Math.max(tt+jit,now);
   playNote(seat,at,m,dur,Math.min(1.25,v*gain));
   seat.on.push([at,at+Math.max(dur,.12),Math.min(1,v*gain)]);
@@ -1178,12 +1189,12 @@ function finish(){
   const g=(spawned?caught/spawned:1)-.1*G.nf;   // 등급: 적발률에서 오지적 1회당 0.1 감점
   const grade=g>=.9?'S':g>=.75?'A':g>=.6?'B':g>=.4?'C':'D';
   const avgDt=caught?(G.caught.reduce((a,x)=>a+x.dt,0)/caught).toFixed(2):'—';
-  const best=loadBest(),key=G.song.id+'/'+G.diff,isBest=best[key]==null||S>best[key];
+  const best=loadBest(),key=G.song.id+'/'+G.rec,isBest=best[key]==null||S>best[key];
   if(isBest){best[key]=S;saveBest(best);}
   const cloudOld=Acc.cloud[key],cloudBest=cloudOld==null||S>cloudOld;
   const byType=Object.keys(TYPE_KO).map(t=>{const n=G.caught.filter(x=>x.type===t).length;return n?`${TYPE_KO[t]} ${n}`:null;}).filter(Boolean).join(', ')||'없음';
   $('resBox').innerHTML=`
-    <div style="text-align:center;color:var(--dim);font-size:13px">${G.song.title} · ${c.name}</div>
+    <div style="text-align:center;color:var(--dim);font-size:13px">${G.song.title} · ${G.size}명 · ${c.name}</div>
     <div class="grade">${grade}</div>
     <div class="formula">S = ΣB<sub>i</sub> − n<sub>f</sub>·P</div>
     <table class="res">
@@ -1196,8 +1207,8 @@ function finish(){
     <div class="btns"><button id="rMenu">메뉴</button><button class="pri" id="rAgain">다시 하기</button></div>`;
   $('result').classList.remove('hidden');
   $('rMenu').onclick=showMenu;
-  $('rAgain').onclick=()=>{ctx.resume().then(()=>startGame(G.song.id,G.diff));};
-  if(Acc.user)submitRecord(G.song.id,G.diff,S,grade,{bonus:G.bonus,nf:G.nf,caught,spawned,missed:G.missed}).then(b=>{
+  $('rAgain').onclick=()=>{ctx.resume().then(()=>startGame(G.song.id,G.size,G.diff));};
+  if(Acc.user)submitRecord(G.song.id,G.rec,S,grade,{bonus:G.bonus,nf:G.nf,caught,spawned,missed:G.missed}).then(b=>{
     const n=$('cloudNote');if(n)n.textContent=b!=null?`계정에 저장됨 · 이 곡·난이도 최고 ${b}`:'계정 저장 실패 — 이 기기에는 저장됨';
   });
 }
