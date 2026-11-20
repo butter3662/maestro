@@ -172,7 +172,7 @@ table.res td:last-child{text-align:right;font-variant-numeric:tabular-nums}
 
     <h2>정보</h2>
     <div class="card"><div class="meta" style="line-height:1.6">일반 곡의 선율은 flutetunes.com 공개 플루트 악보로 음을 확인했고 반주는 게임용으로 편곡했다.<br>보스곡(쇼팽 에튀드 3곡, 월광 3악장)과 할렐루야·G선상의 아리아·첼로 모음곡 전주곡은 Mutopia Project의 악보 소스를 읽어 원곡 음을 그대로 썼다. 월광 소나타 3악장 악보: Chris Sawer, Stewart Holmes 조판, CC BY-SA 2.5. 쇼팽 에튀드 악보: Roland Goretzki 조판, 퍼블릭 도메인. 라 캄파넬라: pianoclassics.net의 퍼블릭 도메인 악보(MuseScore 조판)에서 음을 읽어 앞부분 20마디를 썼다. 운명·비창 3악장·자장가·강아지 왈츠·즉흥환상곡·송어·작은 별 변주곡·달빛: Mutopia Project 퍼블릭 도메인 악보. 카프리스 24번: Samuel Rummel 조판, CC BY-SA 4.0. 결혼 행진곡: Alexander Brock 조판, CC BY-SA 4.0. 카르멘 전주곡: Alex O'S 조판, CC BY-SA 2.5. 왕벌의 비행·세레나데(리스트 편곡)·하바네라: pianoclassics.net 퍼블릭 도메인 악보. 겨울바람: Knute Snortum 조판, CC BY-SA 4.0. 사탕요정의 춤: neonscribe/lilypond-lead-sheets 리드시트(퍼블릭 도메인 헌정)의 선율·화음으로 반주를 만들었다. G선상의 아리아 악보: jeff covey 조판, CC BY-SA 3.0. 할렐루야 악보: Joshua Koo 조판, 첼로 모음곡 1번 전주곡 악보: Andreas Scherer 조판, 퍼블릭 도메인.</div></div>
-    <div class="ver">Maestro v0.5.0</div>
+    <div class="ver">Maestro v0.5.1</div>
   </div>
   <nav id="tabbar"><button data-tab="songs" class="on"><i>🎼</i>곡</button><button data-tab="set"><i>⚙️</i>설정</button></nav>
 </section>
@@ -396,7 +396,7 @@ const SP1=['G#5:.5 G#5:.5 G#5:.5 F#5:.25 E5:.25 B5:1.5 B5:.25 A5:.25','E'],SP3=[
   SP6=['G#5:.5 A5:.25 B5:.25 A5:.5 G#5:.5 F#5:1 r:.5 E5:.5','E B'],SP7=['B5:.5 A5:.25 G#5:.25 A5:.5 B5:.5 C#6:.5 B5:1 E5:.5','E'],
   SP9=['C#6:.5 B5:1 A5:.5 G#5:.5 F#5:.25 E5:.25 F#5:1','A B'],SP10=['E5:1 r:.5 E5:.5 B5:.5 A5:.25 G#5:.25 A5:.5 B5:.5','E'],
   SP11=['C#6:.5 B5:1 E5:.5 B5:.5 A5:.25 G#5:.25 A5:.5 B5:.5','A E'],SP12=['C#6:.5 B5:1 E5:.5 C#6:.5 B5:1 A5:.5','A E'],SP13=['G#5:.5 F#5:.25 E5:.25 F#5:1 B5:1 B5:1','B'];
-const SPRING=mk({id:'spring',title:'사계 중 「봄」',composer:'A. 비발디',meterTxt:'4/4',beatSym:'♩',kw:'four seasons spring vivaldi 사계 봄',qPerBar:4,qPerBeat:1,key:4,style:'pulse'},
+const SPRING=mk({id:'spring',title:'사계 중 「봄」',composer:'A. 비발디',meterTxt:'4/4',beatSym:'♩',kw:'four seasons spring vivaldi 사계 봄',qPerBar:4,qPerBeat:1,key:4,style:'pulse',pickup:'E5:.5'},
   [[...SP1,'f',108],SP1,SP3,[...SP1,'p'],SP1,SP6,[...SP7,'f'],SP7,SP9,[...SP10,'p'],SP11,SP12,[...SP13,'f'],SP1,SP1,SP3,[...SP1,'p'],SP1,SP6,[...SP7,'f'],SP7,SP9,['E5:4','E']]);
 // 드보르작: 신세계 교향곡 2악장 '라르고' (Db장조)
 const N1=['F4:.75 Ab4:.25 Ab4:1 F4:.75 Eb4:.25 Db4:1','Db'],N2=['Eb4:.75 F4:.25 Ab4:.75 F4:.25 Eb4:2','Ab'],N4=['Eb4:.5 F4:.5 Eb4:.75 Db4:.25 Db4:2','Ab Db'],
@@ -572,6 +572,9 @@ function compile(song,diff){
     if(Math.abs(sum-Q)>1e-6) console.warn('마디 길이 오류',song.id,bi+1,sum);
     q+=Q;
   });
+  // 못갖춘마디(곡 시작 전 여린박 음): 0박 바로 앞에 붙인다
+  if(song.pickup){const ts=parseBar(song.pickup),L=ts.reduce((a,t)=>a+t.d,0);let qq=-L;
+    ts.forEach(t=>{if(t.m!==null)mel.unshift({q:qq,d:t.d,m:t.m});qq+=t.d;});mel.sort((a,b)=>a.q-b.q);}
   // 화음
   const chords=[];
   bars.forEach((b,bi)=>{const cs=b.c.split(/\s+/),dq=Q/cs.length;cs.forEach((c,i)=>chords.push({q:bi*Q+i*dq,dq,...parseChord(c)}));});
